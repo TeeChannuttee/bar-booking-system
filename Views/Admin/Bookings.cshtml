@@ -1,0 +1,187 @@
+﻿@model List<Booking>
+@{
+    ViewData["Title"] = "จัดการการจอง";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-calendar3"></i> จัดการการจอง</h2>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">สถานะ</label>
+
+                    @{
+                        var currentStatus = ViewBag.Status as string ?? "";
+                    }
+
+                    <select name="status" class="form-select">
+                        <option value="">ทั้งหมด</option>
+                        <option value="Pending" selected="@(currentStatus == "Pending" ? "selected" : null)">รอชำระเงิน</option>
+                        <option value="Confirmed" selected="@(currentStatus == "Confirmed" ? "selected" : null)">ยืนยันแล้ว</option>
+                        <option value="CheckedIn" selected="@(currentStatus == "CheckedIn" ? "selected" : null)">เช็คอินแล้ว</option>
+                        <option value="Completed" selected="@(currentStatus == "Completed" ? "selected" : null)">เสร็จสิ้น</option>
+                        <option value="Cancelled" selected="@(currentStatus == "Cancelled" ? "selected" : null)">ยกเลิก</option>
+                        <option value="NoShow" selected="@(currentStatus == "NoShow" ? "selected" : null)">ไม่มา</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">วันที่</label>
+                    <input type="date" name="date" class="form-control" value="@ViewBag.Date?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">ค้นหา</label>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="รหัสการจอง, ชื่อ, เบอร์โทร" value="@ViewBag.Search" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> ค้นหา
+                        </button>
+                        <a href="/Admin/Bookings" class="btn btn-secondary">
+                            <i class="bi bi-arrow-clockwise"></i> รีเซ็ต
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>รหัส</th>
+                            <th>ลูกค้า</th>
+                            <th>โทร</th>
+                            <th>วันที่</th>
+                            <th>เวลา</th>
+                            <th>สาขา</th>
+                            <th>โต๊ะ</th>
+                            <th>จำนวน</th>
+                            <th>ยอด</th>
+                            <th>สถานะ</th>
+                            <th>การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in Model)
+                        {
+                            <tr>
+                                <td><code>@booking.BookingCode</code></td>
+                                <td>@booking.User.FullName</td>
+                                <td>@booking.User.PhoneNumber</td>
+                                <td>@booking.BookingDate.ToString("dd/MM/yyyy")</td>
+                                <td>@booking.StartTime.ToString(@"hh\:mm")</td>
+                                <td>@booking.Table.Branch.Name</td>
+                                <td>@booking.Table.TableNumber</td>
+                                <td>@booking.NumberOfGuests</td>
+                                <td>฿@booking.TotalAmount.ToString("N0")</td>
+                                <td>
+                                    @{
+                                        var statusColor = booking.Status switch
+                                        {
+                                            "Confirmed" => "success",
+                                            "Pending" => "warning",
+                                            "CheckedIn" => "info",
+                                            "Completed" => "secondary",
+                                            "Cancelled" => "danger",
+                                            "NoShow" => "dark",
+                                            _ => "primary"
+                                        };
+                                    }
+                                    <span class="badge bg-@statusColor">@booking.Status</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="EditBooking" asp-route-id="@booking.Id"
+                                           class="btn btn-outline-primary" title="แก้ไข">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+
+                                        @if (booking.Status == "Confirmed")
+                                        {
+                                            <button type="button" class="btn btn-outline-success"
+                                                    onclick="checkIn('@booking.BookingCode')" title="Check-in">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        }
+
+                                        @if (booking.Status == "Pending" || booking.Status == "Confirmed")
+                                        {
+                                            <button type="button" class="btn btn-outline-danger"
+                                                    onclick="cancelBooking(@booking.Id)" title="ยกเลิก">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+                       function checkIn(code) {
+            Swal.fire({
+                title: 'Check-in',
+                text: 'ยืนยันการ Check-in สำหรับ ' + code,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Check-in',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // ดึง CSRF token
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+
+                    // ส่ง POST พร้อม CSRF token
+                    $.post('/Admin/CheckIn', {
+                        bookingCode: code,
+                        __RequestVerificationToken: token
+                    }, function(response) {
+                        if(response && response.success) {
+                            Swal.fire('สำเร็จ!', 'Check-in เรียบร้อยแล้ว', 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            var message = response.message || 'ไม่สามารถ Check-in ได้';
+                            Swal.fire('ผิดพลาด!', message, 'error');
+                        }
+                    }).fail(function(xhr, status, error) {
+                        console.error('Check-in error:', xhr.responseText);
+                        Swal.fire('ผิดพลาด!', 'เกิดข้อผิดพลาดในการ Check-in', 'error');
+                    });
+                }
+            });
+        }
+
+        function cancelBooking(id) {
+            Swal.fire({
+                title: 'ยกเลิกการจอง?',
+                text: 'คุณแน่ใจหรือไม่?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ยกเลิก',
+                cancelButtonText: 'ไม่'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Post cancel
+                    window.location.href = '/Admin/CancelBooking/' + id;
+                }
+            });
+        }
+    </script>
+}

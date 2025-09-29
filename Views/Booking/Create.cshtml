@@ -1,0 +1,478 @@
+﻿@model BarBookingSystem.Models.ViewModels.CreateBookingViewModel
+@{
+    ViewData["Title"] = "จองโต๊ะ";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4"><i class="bi bi-calendar-plus"></i> จองโต๊ะ</h2>
+
+    <form asp-action="Create" id="bookingForm" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-8">
+                <!-- Step 1: เลือกสาขา -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">1. เลือกสาขา</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @if (Model?.AvailableBranches != null && Model.AvailableBranches.Any())
+                            {
+                                foreach (var branch in Model.AvailableBranches)
+                                {
+                                    <div class="col-md-4 mb-3">
+                                        <div class="form-check branch-card p-3 border rounded h-100">
+                                            <input class="form-check-input" type="radio"
+                                                   name="BranchId" value="@branch.Id"
+                                                   id="branch_@branch.Id" required>
+                                            <label class="form-check-label w-100" for="branch_@branch.Id">
+                                                <strong>@branch.Name</strong><br />
+                                                <small class="text-muted">@branch.Address</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        ยังไม่มีสาขาในระบบ กรุณาเพิ่มสาขาก่อน
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <span asp-validation-for="BranchId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Step 2: เลือกวันและเวลา -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">2. เลือกวันที่และเวลา</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="BookingDate" class="form-label">วันที่</label>
+                                <input asp-for="BookingDate" type="date" class="form-control"
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="BookingDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="StartTime" class="form-label">เวลาเริ่ม</label>
+                                <select asp-for="StartTime" class="form-select" id="StartTime" required>
+                                    <option value="">-- เลือกเวลา --</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00" selected>19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="23:00">23:00</option>
+                                </select>
+                                <span asp-validation-for="StartTime" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Duration" class="form-label">จำนวนชั่วโมง</label>
+                                <select asp-for="Duration" class="form-select" id="Duration" required>
+                                    <option value="2">2 ชั่วโมง</option>
+                                    <option value="3">3 ชั่วโมง</option>
+                                    <option value="4">4 ชั่วโมง</option>
+                                </select>
+                                <span asp-validation-for="Duration" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="NumberOfGuests" class="form-label">จำนวนคน</label>
+                                <input asp-for="NumberOfGuests" type="number"
+                                       class="form-control" min="1" max="20" value="2" required />
+                                <span asp-validation-for="NumberOfGuests" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Zone" class="form-label">โซนที่ต้องการ (Optional)</label>
+                                <select asp-for="Zone" class="form-select" id="Zone">
+                                    <option value="">-- ไม่ระบุ --</option>
+                                    <option value="Indoor">Indoor (ในร่ม)</option>
+                                    <option value="Outdoor">Outdoor (กลางแจ้ง)</option>
+                                    <option value="Smoking">Smoking (สูบบุหรี่ได้)</option>
+                                    <option value="VIP">VIP Zone</option>
+                                    <option value="Private">Private Room</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-primary mt-3" id="checkAvailability">
+                            <i class="bi bi-search"></i> ค้นหาโต๊ะว่าง
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: เลือกโต๊ะ -->
+                <div class="card mb-3" id="tableSelectionCard" style="display:none;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">3. เลือกโต๊ะ</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="availableTables" class="row"></div>
+                        <input type="hidden" asp-for="TableId" id="TableId" />
+                        <span asp-validation-for="TableId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Step 4: ข้อมูลเพิ่มเติม -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">4. ข้อมูลเพิ่มเติม (Optional)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="PromoCode" class="form-label">
+                                <i class="bi bi-ticket-perforated"></i> โค้ดส่วนลด
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="PromoCode" class="form-control" id="PromoCode"
+                                       placeholder="เช่น WELCOME20" />
+                                <button type="button" class="btn btn-outline-secondary" id="applyPromoBtn">
+                                    ใช้โค้ด
+                                </button>
+                            </div>
+                            <div id="promoMessage"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="SpecialRequests" class="form-label">
+                                <i class="bi bi-chat-text"></i> คำขอพิเศษ
+                            </label>
+                            <textarea asp-for="SpecialRequests" class="form-control" rows="3"
+                                      placeholder="เช่น ต้องการโต๊ะใกล้เวที, มีวันเกิด..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Summary -->
+            <div class="col-lg-4">
+                <div class="card shadow sticky-top" style="top: 80px;">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="bi bi-receipt"></i> สรุปการจอง</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="bookingSummary">
+                            <p class="text-muted text-center">กรุณาเลือกรายละเอียดการจอง</p>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <!-- ✅ เปลี่ยนเป็น type="button" และใช้ onclick -->
+                        <button type="button" class="btn btn-primary w-100 btn-lg" id="submitBtn" disabled onclick="processBooking()">
+                            <i class="bi bi-credit-card"></i> ดำเนินการชำระเงิน
+                        </button>
+                        <small class="text-muted d-block text-center mt-2">
+                            * มัดจำ 30% ของยอดรวม
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(function () {
+            // ---------------- State ----------------
+            let selectedTable = null;
+            let promoType = null;
+            let promoValue = 0;
+            let pendingTimer = null;
+            let loading = false;
+
+            // ------------- Helpers -----------------
+            function debounce(fn, delay) {
+                return function (...args) {
+                    clearTimeout(pendingTimer);
+                    pendingTimer = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+            function setLoading(state) {
+                loading = state;
+                $('#checkAvailability')
+                    .prop('disabled', state)
+                    .html(state
+                        ? '<i class="bi bi-arrow-repeat spin"></i> กำลังค้นหา...'
+                        : '<i class="bi bi-search"></i> ค้นหาโต๊ะว่าง');
+            }
+
+            // --- Auto select branch ---
+            if ($('input[name="BranchId"]:checked').length === 0) {
+                const $first = $('input[name="BranchId"]').first();
+                if ($first.length) $first.prop('checked', true);
+            }
+
+            // ------------- Load Available Tables ---------------
+            const triggerLoad = debounce(loadAvailableTables, 150);
+            $('#checkAvailability').on('click', triggerLoad);
+            $('input[name="BranchId"]').on('change', () => { triggerLoad(); resetPromo(); });
+            $('#BookingDate, #StartTime, #Duration, #NumberOfGuests, #Zone')
+                .on('change', () => { triggerLoad(); resetPromo(); });
+
+            triggerLoad();
+
+            function loadAvailableTables() {
+                const branchId = $('input[name="BranchId"]:checked').val();
+                const date = $('#BookingDate').val();
+                const time = $('#StartTime').val();
+                const duration = $('#Duration').val();
+                const guests = $('#NumberOfGuests').val();
+                const zone = $('#Zone').val();
+
+                if (!branchId || !date || !time) return;
+                if (loading) return;
+
+                setLoading(true);
+                $('#availableTables').html('<div class="text-center text-muted py-3">กำลังค้นหาโต๊ะว่าง…</div>');
+                $('#tableSelectionCard').show();
+
+                $.ajax({
+                    url: '/Booking/GetAvailableTables',
+                    method: 'GET',
+                    dataType: 'json',
+                    data: { branchId, date, time, duration, guests, zone }
+                })
+                .done(function (resp) {
+                    const tables = Array.isArray(resp) ? resp : [];
+                    let html = '';
+
+                    if (tables.length === 0) {
+                        html = '<p class="text-center text-muted">ไม่มีโต๊ะว่างในช่วงเวลาที่เลือก</p>';
+                    } else {
+                        tables.forEach(function(t) {
+                            const typeIcon = t.tableType === 'VIP' ? '👑' : (t.tableType === 'Private' ? '🔒' : '🪑');
+                            const zoneColor = t.zone === 'VIP' ? 'warning' : (t.zone === 'Private' ? 'danger' : (t.zone === 'Outdoor' ? 'success' : 'info'));
+                            const basePriceBlock = Number(t.basePrice) > 0 ? '<div>ค่าโต๊ะ: ฿' + Number(t.basePrice).toLocaleString() + '</div>' : '';
+                            const json = $('<div/>').text(JSON.stringify(t)).html();
+
+                            html += '<div class="col-md-6 mb-3">' +
+                                    '<div class="card table-select" data-table=\'' + json + '\'>' +
+                                    '<div class="card-body">' +
+                                    '<h6>' + typeIcon + ' โต๊ะ ' + t.tableNumber + '</h6>' +
+                                    '<span class="badge bg-' + zoneColor + '">' + t.zone + '</span>' +
+                                    '<div class="small mt-2">' +
+                                    '<div>ความจุ: ' + t.capacity + ' คน</div>' +
+                                    '<div>ขั้นต่ำ: ฿' + Number(t.minimumSpend).toLocaleString() + '</div>' +
+                                    basePriceBlock +
+                                    '<div class="fw-bold text-primary">รวม: ฿' + Number((Number(t.minimumSpend) + Number(t.basePrice))).toLocaleString() + '</div>' +
+                                    '</div></div></div></div>';
+                        });
+                    }
+                    $('#availableTables').html(html);
+
+                    $('#availableTables .table-select').each(function () {
+                        const s = $(this).attr('data-table');
+                        try {
+                            $(this).data('table', JSON.parse(s));
+                        } catch (e) {
+                            // ignore
+                        }
+                    });
+                })
+                .fail(function (xhr) {
+                    console.error('GetAvailableTables failed', xhr.status, xhr.responseText);
+                    $('#availableTables').html('<p class="text-danger">โหลดโต๊ะว่างไม่สำเร็จ</p>');
+                })
+                .always(function () {
+                    setLoading(false);
+                });
+            }
+
+            // ---------- เลือกโต๊ะ ----------
+            $(document).on('click', '.table-select', function () {
+                $('.table-select').removeClass('selected');
+                $(this).addClass('selected');
+                selectedTable = $(this).data('table');
+                $('#TableId').val(selectedTable && selectedTable.id ? selectedTable.id : '');
+
+                resetPromo();
+                $('#promoMessage').empty();
+                updateSummary();
+            });
+
+            // ---------- ใช้โค้ดส่วนลด ----------
+            $('#applyPromoBtn').on('click', function () {
+                const code = $('#PromoCode').val()?.trim();
+                if (!code) {
+                    resetPromo();
+                    $('#promoMessage').html('<div class="alert alert-warning mt-2"><i class="bi bi-exclamation-circle"></i> กรุณากรอกโค้ด</div>');
+                    updateSummary();
+                    return;
+                }
+
+                if (!selectedTable) {
+                    $('#promoMessage').html('<div class="alert alert-warning mt-2"><i class="bi bi-exclamation-circle"></i> กรุณาเลือกโต๊ะก่อนใช้โค้ด</div>');
+                    return;
+                }
+
+                const baseTotal = Number(selectedTable.minimumSpend) + Number(selectedTable.basePrice);
+
+                $.getJSON('/Booking/ValidatePromoCode', { code, baseTotal })
+                .done(function (result) {
+                    if (result && result.valid) {
+                        promoType = result.type;
+                        promoValue = Number(result.value);
+                        $('#promoMessage').html('<div class="alert alert-success mt-2"><i class="bi bi-check-circle"></i> ' + (result.description || 'ใช้โค้ดส่วนลดแล้ว') + '</div>');
+                    } else {
+                        resetPromo();
+                        $('#promoMessage').html('<div class="alert alert-danger mt-2"><i class="bi bi-x-circle"></i> รหัสโปรโมชั่นไม่ถูกต้อง</div>');
+                    }
+                    updateSummary();
+                })
+                .fail(function () {
+                    resetPromo();
+                    $('#promoMessage').html('<div class="alert alert-danger mt-2">ไม่สามารถตรวจโค้ดได้</div>');
+                    updateSummary();
+                });
+            });
+
+            // เคลียร์ผลโปรฯ เมื่อแก้ไขโค้ด
+            $('#PromoCode').on('input', function () {
+                if (!this.value.trim()) {
+                    resetPromo();
+                    $('#promoMessage').empty();
+                    updateSummary();
+                }
+            });
+
+            // ---------- Reset โปรฯ ----------
+            function resetPromo() {
+                promoType = null;
+                promoValue = 0;
+                $('#PromoCode').val('');
+            }
+
+            // ---------- Summary ----------
+            function updateSummary() {
+                if (!selectedTable) {
+                    $('#bookingSummary').html('<p class="text-muted text-center">กรุณาเลือกโต๊ะ</p>');
+                    $('#submitBtn').prop('disabled', true);
+                    return;
+                }
+
+                const branch = $('input[name="BranchId"]:checked').next('label').find('strong').text();
+                const date = $('#BookingDate').val();
+                const time = $('#StartTime').val();
+                const duration = $('#Duration').val();
+                const guests = $('#NumberOfGuests').val();
+
+                let totalBase = Number(selectedTable.minimumSpend) + Number(selectedTable.basePrice);
+                let discount = 0;
+
+                if (promoType === 'percent' && promoValue > 0) {
+                    discount = Math.round(totalBase * (promoValue / 100));
+                } else if (promoType === 'amount' && promoValue > 0) {
+                    discount = Math.min(totalBase, Math.round(promoValue));
+                }
+
+                const total = Math.max(0, totalBase - discount);
+                const deposit = Math.round(total * 0.30);
+
+                const basePriceBlock = Number(selectedTable.basePrice) > 0 ? '<dt class="col-6">ค่าโต๊ะ:</dt><dd class="col-6">฿' + Number(selectedTable.basePrice).toLocaleString() + '</dd>' : '';
+                const discountBlock = discount > 0 ? '<dt class="col-6 text-success">ส่วนลด:</dt><dd class="col-6 text-success">-฿' + discount.toLocaleString() + '</dd>' : '';
+
+                const summaryHtml = '<dl class="row small">' +
+                    '<dt class="col-6">สาขา:</dt><dd class="col-6">' + branch + '</dd>' +
+                    '<dt class="col-6">วันที่:</dt><dd class="col-6">' + new Date(date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) + '</dd>' +
+                    '<dt class="col-6">เวลา:</dt><dd class="col-6">' + time + ' (' + duration + ' ชม.)</dd>' +
+                    '<dt class="col-6">โต๊ะ:</dt><dd class="col-6">' + selectedTable.tableNumber + '</dd>' +
+                    '<dt class="col-6">โซน:</dt><dd class="col-6">' + selectedTable.zone + '</dd>' +
+                    '<dt class="col-6">จำนวนคน:</dt><dd class="col-6">' + guests + '</dd>' +
+                    '<hr class="my-2">' +
+                    '<dt class="col-6">ขั้นต่ำ:</dt><dd class="col-6">฿' + Number(selectedTable.minimumSpend).toLocaleString() + '</dd>' +
+                    basePriceBlock + discountBlock +
+                    '<dt class="col-6"><strong>รวม:</strong></dt><dd class="col-6"><strong>฿' + total.toLocaleString() + '</strong></dd>' +
+                    '<dt class="col-6 text-primary"><strong>มัดจำ 30%:</strong></dt><dd class="col-6 text-primary"><strong>฿' + deposit.toLocaleString() + '</strong></dd>' +
+                    '</dl>';
+
+                $('#bookingSummary').html(summaryHtml);
+                $('#submitBtn').prop('disabled', false);
+            }
+        });
+
+        // ✅ ฟังก์ชันสำหรับการจอง
+                  function processBooking() {
+          if (!$('#TableId').val()) {
+            Swal.fire('กรุณาเลือกโต๊ะ', 'คุณยังไม่ได้เลือกโต๊ะที่ต้องการจอง', 'warning');
+            return;
+          }
+
+          const $submitBtn = $('#submitBtn');
+          const originalText = $submitBtn.html();
+          $submitBtn.prop('disabled', true)
+            .html('<span class="spinner-border spinner-border-sm me-2"></span>กำลังดำเนินการ...');
+
+          $.ajax({
+            url: '/Booking/Create',
+            method: 'POST',
+            data: $('#bookingForm').serialize(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }, // บอกฝั่งเซิร์ฟเวอร์ว่าเป็น AJAX
+            success: function (response, status, xhr) {
+              // กรณีเซิร์ฟเวอร์ตอบ JSON ที่เราตั้งใจ
+              if (response && typeof response === 'object') {
+                if (response.success && response.bookingId) {
+                  window.location.href = response.redirectUrl
+                    || ('/Payment/ProcessPayment?bookingId=' + response.bookingId);
+                  return;
+                }
+
+                // ไม่สำเร็จ -> โชว์ detail ถ้ามี
+                const msg = response.detail || response.message || 'ไม่สามารถสร้างการจองได้';
+                if (response.stack) console.error('Server stack:', response.stack);
+                Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+                $submitBtn.prop('disabled', false).html(originalText);
+                return;
+              }
+
+              // กรณีเซิร์ฟเวอร์ตอบเป็น HTML (เช่น Redirect ไป View)
+              const bookingId = extractBookingId(xhr.responseText || '');
+              if (bookingId) {
+                window.location.href = '/Payment/ProcessPayment?bookingId=' + bookingId;
+              } else {
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถสร้างการจองได้ (Unexpected response)', 'error');
+                $submitBtn.prop('disabled', false).html(originalText);
+              }
+            },
+                   error: function (xhr) {
+            $('#submitBtn').prop('disabled', false).html(originalText);
+
+            let msg = "เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่";
+            if (xhr.responseJSON) {
+                console.log("Create error JSON:", xhr.responseJSON);
+
+                // ✅ แสดง inner หรือ error ที่เราส่งมาจาก Controller
+                if (xhr.responseJSON.inner)
+                    msg = xhr.responseJSON.inner;
+                else if (xhr.responseJSON.error)
+                    msg = xhr.responseJSON.error;
+                else if (xhr.responseJSON.message)
+                    msg = xhr.responseJSON.message;
+            } else {
+                console.log("Create error text:", xhr.responseText);
+            }
+
+            Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+        }
+          });
+        }
+
+        // ดึง bookingId จาก HTML ถ้าจำเป็น
+        function extractBookingId(html) {
+          const match = html.match(/bookingId["\s]*[:=]["\s]*(\d+)/i);
+          return match ? match[1] : null;
+        }
+    </script>
+}

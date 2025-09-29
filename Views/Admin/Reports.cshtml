@@ -1,0 +1,510 @@
+﻿@model BarBookingSystem.Models.ViewModels.ReportsViewModel
+@{
+    ViewData["Title"] = "รายงาน";
+    // แก้ปัญหาการแปลงวันที่โดยใช้ Culture ที่ถูกต้อง
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("en-US");
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-graph-up"></i> รายงาน</h2>
+
+    <!-- Date Range Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3" onsubmit="validateDates(event)">
+                <div class="col-md-4">
+                    <label class="form-label">วันที่เริ่ม</label>
+                    <input type="date"
+                           name="startDate"
+                           id="startDate"
+                           class="form-control"
+                           value="@(Model.StartDate?.ToString("yyyy-MM-dd", culture) ?? DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd"))"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                           required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">วันที่สิ้นสุด</label>
+                    <input type="date"
+                           name="endDate"
+                           id="endDate"
+                           class="form-control"
+                           value="@(Model.EndDate?.ToString("yyyy-MM-dd", culture) ?? DateTime.Today.ToString("yyyy-MM-dd"))"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                           required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> ดูรายงาน
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="exportReport()">
+                            <i class="bi bi-download"></i> Export CSV
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="setQuickRange(30)">
+                            30 วันล่าสุด
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Debug Info (ลบออกได้หลังแก้เสร็จ) -->
+    @if (Model.StartDate.HasValue && Model.EndDate.HasValue)
+    {
+        <div class="alert alert-info">
+            <strong>Debug:</strong>
+            วันที่เริ่ม: @Model.StartDate.Value.ToString("yyyy-MM-dd") |
+            วันที่สิ้นสุด: @Model.EndDate.Value.ToString("yyyy-MM-dd") |
+            จำนวนการจอง: @Model.TotalBookings
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-start border-primary border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">รายได้รวม</div>
+                            <div class="h5 mb-0 fw-bold text-primary">฿@Model.TotalRevenue.ToString("N0")</div>
+                            @if (Model.StartDate.HasValue && Model.EndDate.HasValue)
+                            {
+                                var days = Math.Max(1, (Model.EndDate.Value - Model.StartDate.Value).Days + 1);
+                                var avgPerDay = Model.TotalRevenue / days;
+                                <small class="text-muted">เฉลี่ย ฿@avgPerDay.ToString("N0")/วัน</small>
+                            }
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-success border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">จำนวนการจอง</div>
+                            <div class="h5 mb-0 fw-bold text-success">@Model.TotalBookings</div>
+                            @if (Model.StartDate.HasValue && Model.EndDate.HasValue)
+                            {
+                                var days = Math.Max(1, (Model.EndDate.Value - Model.StartDate.Value).Days + 1);
+                                var avgPerDay = (double)Model.TotalBookings / days;
+                                <small class="text-muted">เฉลี่ย @avgPerDay.ToString("F1") การจอง/วัน</small>
+                            }
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-warning border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">อัตรายกเลิก</div>
+                            <div class="h5 mb-0 fw-bold text-warning">@Model.CancellationRate.ToString("F1")%</div>
+                            <small class="text-muted">
+                                @if (Model.CancellationRate <= 5)
+                                {
+                                    <span class="text-success">ต่ำ (ดี)</span>
+                                }
+                                else if (Model.CancellationRate <= 10)
+                                {
+                                    <span class="text-warning">ปานกลาง</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">สูง (ควรปรับปรุง)</span>
+                                }
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-info border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">ค่าเฉลี่ย/การจอง</div>
+                            <div class="h5 mb-0 fw-bold text-info">฿@Model.AvgPerBooking.ToString("N0")</div>
+                            <small class="text-muted">รายได้ต่อครั้ง</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-graph-up fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">กราฟรายได้รายวัน</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.ChartData.Any(x => x > 0))
+                    {
+                        <canvas id="revenueChart" style="height: 400px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-bar-chart fs-1"></i>
+                            <p class="mt-2">ไม่มีข้อมูลรายได้ในช่วงเวลาที่เลือก</p>
+                            <small>ลองเลือกช่วงเวลาที่กว้างขึ้น หรือตรวจสอบว่ามีข้อมูลในระบบหรือไม่</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">สัดส่วนการจองตามโซน</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.ZoneData.Any())
+                    {
+                        <canvas id="zoneChart" style="height: 400px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-pie-chart fs-1"></i>
+                            <p class="mt-2">ไม่มีข้อมูลการจองตามโซน</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Tables and Customers -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">โต๊ะยอดนิยม</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.TopTables.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>อันดับ</th>
+                                        <th>โต๊ะ</th>
+                                        <th>สาขา</th>
+                                        <th>จำนวนจอง</th>
+                                        <th>เปอร์เซ็นต์</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var table in Model.TopTables)
+                                    {
+                                        var percentage = Model.TotalBookings > 0 ? (double)table.BookingCount / Model.TotalBookings * 100 : 0;
+                                        <tr>
+                                            <td>
+                                                @if (table.Rank == 1)
+                                                {
+                                                    <i class="bi bi-trophy-fill text-warning"></i>
+                                                }
+                                                else if (table.Rank == 2)
+                                                {
+                                                    <i class="bi bi-award-fill text-secondary"></i>
+                                                }
+                                                else if (table.Rank == 3)
+                                                {
+                                                    <i class="bi bi-award-fill text-warning"></i>
+                                                }
+                                                @table.Rank
+                                            </td>
+                                            <td><strong>@table.TableNumber</strong></td>
+                                            <td>@table.BranchName</td>
+                                            <td>@table.BookingCount</td>
+                                            <td>
+                                                <span class="text-muted">@percentage.ToString("F1")%</span>
+                                                <div class="progress mt-1" style="height: 4px;">
+                                                    <div class="progress-bar" style="width: @percentage%"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-table fs-1"></i>
+                            <p class="mt-2">ไม่มีข้อมูลการจองโต๊ะ</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">ลูกค้า VIP</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.TopCustomers.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>อันดับ</th>
+                                        <th>ชื่อ</th>
+                                        <th>จำนวนจอง</th>
+                                        <th>ยอดรวม</th>
+                                        <th>เฉลี่ย/ครั้ง</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var customer in Model.TopCustomers)
+                                    {
+                                        var avgPerBooking = customer.BookingCount > 0 ? customer.TotalSpent / customer.BookingCount : 0;
+                                        <tr>
+                                            <td>
+                                                @if (customer.Rank == 1)
+                                                {
+                                                    <i class="bi bi-trophy-fill text-warning"></i>
+                                                }
+                                                else if (customer.Rank == 2)
+                                                {
+                                                    <i class="bi bi-award-fill text-secondary"></i>
+                                                }
+                                                else if (customer.Rank == 3)
+                                                {
+                                                    <i class="bi bi-award-fill text-warning"></i>
+                                                }
+                                                @customer.Rank
+                                            </td>
+                                            <td><strong>@customer.Name</strong></td>
+                                            <td>@customer.BookingCount</td>
+                                            <td class="text-success">฿@customer.TotalSpent.ToString("N0")</td>
+                                            <td class="text-muted">฿@avgPerBooking.ToString("N0")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-people fs-1"></i>
+                            <p class="mt-2">ไม่มีข้อมูลลูกค้า</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Summary -->
+    @if (Model.StartDate.HasValue && Model.EndDate.HasValue)
+    {
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 fw-bold text-primary">สรุปช่วงเวลา</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ช่วงเวลา:</strong> @Model.StartDate.Value.ToString("dd/MM/yyyy") - @Model.EndDate.Value.ToString("dd/MM/yyyy")</p>
+                        <p><strong>จำนวนวัน:</strong> @((Model.EndDate.Value - Model.StartDate.Value).Days + 1) วัน</p>
+                        <p><strong>รายได้เฉลี่ยต่อวัน:</strong> ฿@((Model.TotalRevenue / Math.Max(1, (Model.EndDate.Value - Model.StartDate.Value).Days + 1)).ToString("N0"))</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>การจองเฉลี่ยต่อวัน:</strong> @(((double)Model.TotalBookings / Math.Max(1, (Model.EndDate.Value - Model.StartDate.Value).Days + 1)).ToString("F1")) การจอง</p>
+                        <p><strong>รายได้ต่อการจอง:</strong> ฿@Model.AvgPerBooking.ToString("N0")</p>
+                        <p><strong>อัตราการยกเลิก:</strong> @Model.CancellationRate.ToString("F1")%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // แก้ปัญหาการแปลงวันที่
+        function validateDates(event) {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (new Date(startDate) > new Date(endDate)) {
+                event.preventDefault();
+                alert('วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด');
+                return false;
+            }
+
+            // ตรวจสอบปีไม่เกิน 2100
+            const startYear = new Date(startDate).getFullYear();
+            const endYear = new Date(endDate).getFullYear();
+
+            if (startYear > 2100 || endYear > 2100 || startYear < 2020 || endYear < 2020) {
+                event.preventDefault();
+                alert('กรุณาเลือกปีระหว่าง 2020-2100');
+                return false;
+            }
+
+            return true;
+        }
+
+        // ตั้งค่าช่วงเวลาด่วน
+        function setQuickRange(days) {
+            const today = new Date();
+            const startDate = new Date(today);
+            startDate.setDate(today.getDate() - days);
+
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+        }
+
+        // Revenue Chart
+        @if (Model.ChartData.Any(x => x > 0))
+        {
+                <text>
+                const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+                new Chart(revenueCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(Model.ChartLabels)),
+                        datasets: [{
+                            label: 'รายได้ (บาท)',
+                            data: @Html.Raw(Json.Serialize(Model.ChartData)),
+                            backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'รายได้: ฿' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '฿' + value.toLocaleString();
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+                </text>
+        }
+
+        // Zone Chart
+        @if (Model.ZoneData.Any())
+        {
+                <text>
+                const zoneCtx = document.getElementById('zoneChart').getContext('2d');
+                new Chart(zoneCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(Model.ZoneLabels)),
+                        datasets: [{
+                            data: @Html.Raw(Json.Serialize(Model.ZoneData)),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 206, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)',
+                                'rgba(255, 159, 64, 0.8)',
+                                'rgba(199, 199, 199, 0.8)',
+                                'rgba(83, 102, 255, 0.8)'
+                            ],
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                </text>
+        }
+
+        function exportReport() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!startDate || !endDate) {
+                alert('กรุณาเลือกช่วงวันที่ก่อน Export');
+                return;
+            }
+
+            window.location.href = `/Admin/ExportBookings?startDate=${startDate}&endDate=${endDate}`;
+        }
+    </script>
+}

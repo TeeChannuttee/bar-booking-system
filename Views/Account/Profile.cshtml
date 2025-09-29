@@ -1,0 +1,461 @@
+﻿@model ApplicationUser
+@{
+    ViewData["Title"] = "โปรไฟล์ของฉัน";
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("en-US");
+}
+
+<div class="container py-4">
+    <!-- Profile Update Messages -->
+    @if (TempData["ProfileUpdateSuccess"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert" data-alert-type="profile">
+            <i class="bi bi-check-circle"></i> @TempData["ProfileUpdateSuccess"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ProfileUpdateError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" data-alert-type="profile">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ProfileUpdateError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Password Change Messages -->
+    @if (TempData["PasswordChangeSuccess"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert" data-alert-type="password">
+            <i class="bi bi-check-circle"></i> @TempData["PasswordChangeSuccess"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["PasswordChangeError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" data-alert-type="password">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["PasswordChangeError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Legacy Support (for backward compatibility) -->
+    @if (TempData["Success"] != null && TempData["ProfileUpdateSuccess"] == null && TempData["PasswordChangeSuccess"] == null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert" data-alert-type="legacy">
+            <i class="bi bi-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null && TempData["ProfileUpdateError"] == null && TempData["PasswordChangeError"] == null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" data-alert-type="legacy">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Left Column - Profile Info -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-person-circle" style="font-size: 5rem; color: #667eea;"></i>
+                    </div>
+                    <h4>@(Model.FullName ?? "ไม่ระบุชื่อ")</h4>
+                    <p class="text-muted">@Model.Email</p>
+
+                    <!-- Member Tier Badge -->
+                    <div class="mb-3">
+                        @{
+                            var tierColor = (Model.MemberTier ?? "Bronze") switch
+                            {
+                                "Platinum" => "dark",
+                                "Gold" => "warning",
+                                "Silver" => "secondary",
+                                _ => "info"
+                            };
+                            var tierIcon = (Model.MemberTier ?? "Bronze") switch
+                            {
+                                "Platinum" => "bi-gem",
+                                "Gold" => "bi-star-fill",
+                                "Silver" => "bi-award",
+                                _ => "bi-award"
+                            };
+                        }
+                        <span class="badge bg-@tierColor fs-6">
+                            <i class="@tierIcon"></i> @(Model.MemberTier ?? "Bronze") Member
+                        </span>
+                    </div>
+
+                    <!-- Loyalty Points -->
+                    <div class="alert alert-light">
+                        <h5>คะแนนสะสม</h5>
+                        <h3 class="text-primary">@Model.LoyaltyPoints.ToString("N0")</h3>
+                        <small>Points</small>
+                    </div>
+
+                    <!-- Member Since -->
+                    <p class="text-muted small">
+                        <i class="bi bi-calendar"></i> สมาชิกตั้งแต่ @Model.CreatedAt.ToString("MMMM yyyy", new System.Globalization.CultureInfo("th-TH"))
+                    </p>
+
+                    <!-- Phone Number -->
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        <p class="text-muted small">
+                            <i class="bi bi-telephone"></i> @Model.PhoneNumber
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-graph-up"></i> สถิติการใช้งาน</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>การจองทั้งหมด:</span>
+                        <strong>@ViewBag.TotalBookings</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>จองสำเร็จ:</span>
+                        <strong class="text-success">@ViewBag.CompletedBookings</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>ยกเลิก:</span>
+                        <strong class="text-danger">@ViewBag.CancelledBookings</strong>
+                    </div>
+                    <hr>
+                    @if (ViewBag.TotalBookings > 0)
+                    {
+                        var successRate = Math.Round((double)ViewBag.CompletedBookings / ViewBag.TotalBookings * 100, 1);
+                        <div class="d-flex justify-content-between">
+                            <span>อัตราสำเร็จ:</span>
+                            <strong class="text-info">@successRate%</strong>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Edit Profile -->
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-gear"></i> แก้ไขข้อมูลส่วนตัว</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="UpdateProfile" method="post" id="profileForm">
+                        @Html.AntiForgeryToken()
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="FullName" class="form-label">ชื่อ-นามสกุล *</label>
+                                <input asp-for="FullName" class="form-control" required maxlength="100" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PhoneNumber" class="form-label">เบอร์โทรศัพท์ *</label>
+                                <input asp-for="PhoneNumber" class="form-control" required maxlength="20" pattern="[0-9\-\+\(\)\s]+" title="กรุณากรอกเบอร์โทรที่ถูกต้อง" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label">อีเมล</label>
+                                <input asp-for="Email" class="form-control" readonly style="background-color: #f8f9fa;" />
+                                <small class="text-muted">ไม่สามารถเปลี่ยนอีเมลได้</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="DateOfBirth" class="form-label">วันเกิด</label>
+                                <input asp-for="DateOfBirth" type="date" class="form-control"
+                                       value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd", culture))"
+                                       max="@DateTime.Today.AddYears(-13).ToString("yyyy-MM-dd")" />
+                                <small class="text-muted">สำหรับส่วนลดวันเกิด</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">ที่อยู่</label>
+                            <textarea asp-for="Address" class="form-control" rows="3" maxlength="500"
+                                      placeholder="บ้านเลขที่ หมู่ ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LineUserId" class="form-label">
+                                <i class="fab fa-line text-success"></i> LINE ID
+                            </label>
+                            <input asp-for="LineUserId" class="form-control" maxlength="50" placeholder="สำหรับรับการแจ้งเตือนผ่าน LINE" />
+                            <small class="text-muted">ช่วยให้เราส่งข้อมูลการจองไปยัง LINE ของคุณได้</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="NotificationEnabled" class="form-check-input" />
+                                <label asp-for="NotificationEnabled" class="form-check-label">
+                                    เปิดรับการแจ้งเตือน
+                                </label>
+                                <div class="form-text">รับแจ้งเตือนเกี่ยวกับการจอง โปรโมชัน และข่าวสาร</div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-primary" id="saveButton">
+                                <i class="bi bi-check-circle"></i> บันทึกข้อมูล
+                            </button>
+                            <a href="#" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                <i class="bi bi-key"></i> เปลี่ยนรหัสผ่าน
+                            </a>
+                            <a asp-controller="Booking" asp-action="MyBookings" class="btn btn-outline-info">
+                                <i class="bi bi-calendar-check"></i> ดูการจองของฉัน
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Promotion for Next Tier -->
+            @if ((Model.MemberTier ?? "Bronze") != "Platinum")
+            {
+                <div class="card mt-4 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-star-fill text-warning"></i> อัปเกรดสมาชิก
+                        </h5>
+                        <p class="mb-2">
+                            จองอีก <strong class="text-primary">@ViewBag.BookingsToNextTier ครั้ง</strong> เพื่ออัปเกรดเป็น
+                            <strong class="text-warning">@ViewBag.NextTier</strong> Member
+                        </p>
+                        <div class="progress mb-2" style="height: 10px;">
+                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar"
+                                 style="width: @ViewBag.ProgressToNextTier%">
+                                @ViewBag.ProgressToNextTier%
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            <strong>สิทธิพิเศษ @ViewBag.NextTier:</strong>
+                            @switch (ViewBag.NextTier as string)
+                            {
+                                case "Silver":
+                                    <span>ส่วนลด 5%, คะแนนสะสม x1.2</span>
+                                    break;
+                                case "Gold":
+                                    <span>ส่วนลด 10%, คะแนนสะสม x1.5, จองล่วงหน้า 30 วัน</span>
+                                    break;
+                                case "Platinum":
+                                    <span>ส่วนลด 15%, คะแนนสะสม x2, จองล่วงหน้า 60 วัน, โต๊ะ VIP</span>
+                                    break;
+                            }
+                        </small>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card mt-4 border-dark">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">
+                            <i class="bi bi-gem text-dark"></i> คุณเป็นสมาชิก Platinum แล้ว!
+                        </h5>
+                        <p class="text-muted">สิทธิพิเศษระดับสูงสุด: ส่วนลด 15%, คะแนนสะสม x2, โต๊ะ VIP</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">
+                    <i class="bi bi-key"></i> เปลี่ยนรหัสผ่าน
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="ChangePassword" method="post" id="changePasswordForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">รหัสผ่านปัจจุบัน *</label>
+                        <input type="password" name="currentPassword" class="form-control" required autocomplete="current-password" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">รหัสผ่านใหม่ *</label>
+                        <input type="password" name="newPassword" id="newPassword" class="form-control" required minlength="6" autocomplete="new-password" />
+                        <div class="form-text">รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ยืนยันรหัสผ่านใหม่ *</label>
+                        <input type="password" name="confirmPassword" id="confirmPassword" class="form-control" required minlength="6" autocomplete="new-password" />
+                        <div id="passwordMatchMessage" class="form-text"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" id="changePasswordBtn">
+                        <i class="bi bi-check-circle"></i> เปลี่ยนรหัสผ่าน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ✅ ป้องกัน double submission
+            const profileForm = document.getElementById('profileForm');
+            const saveButton = document.getElementById('saveButton');
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
+
+            let isProfileSubmitting = false;
+            let isPasswordSubmitting = false;
+
+            // Profile form submission
+            if (profileForm && saveButton) {
+                profileForm.addEventListener('submit', function(e) {
+                    if (isProfileSubmitting) {
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    isProfileSubmitting = true;
+                    saveButton.innerHTML = '<i class="bi bi-hourglass-split"></i> กำลังบันทึก...';
+                    saveButton.disabled = true;
+                });
+            }
+
+            // Password form submission
+            if (changePasswordForm && changePasswordBtn) {
+                changePasswordForm.addEventListener('submit', function(e) {
+                    if (isPasswordSubmitting) {
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+
+                    if (newPassword !== confirmPassword) {
+                        e.preventDefault();
+                        alert('รหัสผ่านใหม่และรหัสผ่านยืนยันไม่ตรงกัน');
+                        return false;
+                    }
+
+                    if (newPassword.length < 6) {
+                        e.preventDefault();
+                        alert('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+                        return false;
+                    }
+
+                    isPasswordSubmitting = true;
+                    changePasswordBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> กำลังเปลี่ยน...';
+                    changePasswordBtn.disabled = true;
+                });
+            }
+
+            // ✅ Auto-dismiss alerts ตาม type
+            const alerts = document.querySelectorAll('.alert[data-alert-type]');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    if (alert && !alert.classList.contains('d-none')) {
+                        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                        bsAlert.close();
+                    }
+                }, 4000); // ลดเวลาเป็น 4 วินาที
+            });
+
+            // Password validation
+            const newPasswordInput = document.getElementById('newPassword');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const messageDiv = document.getElementById('passwordMatchMessage');
+
+            function validatePasswords() {
+                const newPassword = newPasswordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+
+                if (confirmPassword === '') {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'form-text';
+                    changePasswordBtn.disabled = false;
+                    return;
+                }
+
+                if (newPassword === confirmPassword) {
+                    messageDiv.textContent = '✓ รหัสผ่านตรงกัน';
+                    messageDiv.className = 'form-text text-success';
+                    changePasswordBtn.disabled = isPasswordSubmitting;
+                } else {
+                    messageDiv.textContent = '✗ รหัสผ่านไม่ตรงกัน';
+                    messageDiv.className = 'form-text text-danger';
+                    changePasswordBtn.disabled = true;
+                }
+            }
+
+            if (newPasswordInput && confirmPasswordInput) {
+                newPasswordInput.addEventListener('input', validatePasswords);
+                confirmPasswordInput.addEventListener('input', validatePasswords);
+            }
+
+            // Clear change password form when modal is hidden
+            const changePasswordModal = document.getElementById('changePasswordModal');
+            if (changePasswordModal) {
+                changePasswordModal.addEventListener('hidden.bs.modal', function() {
+                    if (changePasswordForm) {
+                        changePasswordForm.reset();
+                        if (messageDiv) {
+                            messageDiv.textContent = '';
+                            messageDiv.className = 'form-text';
+                        }
+                        if (changePasswordBtn) {
+                            changePasswordBtn.innerHTML = '<i class="bi bi-check-circle"></i> เปลี่ยนรหัสผ่าน';
+                            changePasswordBtn.disabled = false;
+                        }
+                        isPasswordSubmitting = false;
+                    }
+                });
+            }
+
+            // Phone number formatting
+            const phoneInput = document.querySelector('input[name="PhoneNumber"]');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/[^\d\+\-\(\)\s]/g, '');
+                    e.target.value = value;
+                });
+            }
+
+            // ✅ ป้องกันการ resubmit เมื่อ refresh หน้า
+            if (window.history.replaceState) {
+                window.history.replaceState(null, null, window.location.href);
+            }
+
+            // ✅ Reset form states หลังจาก page load เสร็จ
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted) {
+                    // หน้าถูก load จาก cache
+                    isProfileSubmitting = false;
+                    isPasswordSubmitting = false;
+
+                    if (saveButton) {
+                        saveButton.innerHTML = '<i class="bi bi-check-circle"></i> บันทึกข้อมูล';
+                        saveButton.disabled = false;
+                    }
+
+                    if (changePasswordBtn) {
+                        changePasswordBtn.innerHTML = '<i class="bi bi-check-circle"></i> เปลี่ยนรหัสผ่าน';
+                        changePasswordBtn.disabled = false;
+                    }
+                }
+            });
+        });
+    </script>
+}

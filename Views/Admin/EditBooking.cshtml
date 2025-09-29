@@ -1,0 +1,285 @@
+﻿@model Booking
+@{
+    ViewData["Title"] = "แก้ไขการจอง";
+}
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil-square"></i> แก้ไขการจอง: @Model.BookingCode
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Validation Summary -->
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <h6>กรุณาแก้ไขข้อผิดพลาดต่อไปนี้:</h6>
+                            <ul class="mb-0">
+                                @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@modelError.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <form asp-action="EditBooking" method="post">
+                        '
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="BookingCode" />
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="CreatedAt" />
+                        <input type="hidden" asp-for="QRCodeData" />
+
+                        <!-- Customer Info (Read-only) -->
+                        @if (Model.User != null)
+                        {
+                            <div class="alert alert-info">
+                                <h6>ข้อมูลลูกค้า</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>ชื่อ:</strong> @(Model.User.FullName ?? "ไม่ระบุ")
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>อีเมล:</strong> @(Model.User.Email ?? "ไม่ระบุ")
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>โทร:</strong> @(Model.User.PhoneNumber ?? "ไม่ระบุ")
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Booking Details -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="BookingDate" class="form-label">วันที่จอง</label>
+                                <input asp-for="BookingDate" type="date" class="form-control" required />
+                                <span asp-validation-for="BookingDate" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="StartTime" class="form-label">เวลาเริ่ม</label>
+                                <input asp-for="StartTime" type="time" class="form-control" required />
+                                <span asp-validation-for="StartTime" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="EndTime" class="form-label">เวลาสิ้นสุด</label>
+                                <input asp-for="EndTime" type="time" class="form-control" required />
+                                <span asp-validation-for="EndTime" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="TableId" class="form-label">โต๊ะ</label>
+                                <select asp-for="TableId" class="form-select" required>
+                                    @if (ViewBag.Tables != null)
+                                    {
+                                        @foreach (var table in (List<BarBookingSystem.Models.Table>)ViewBag.Tables)
+                                        {
+                                            <option value="@table.Id"
+                                                    selected="@(table.Id == Model.TableId ? "selected" : null)">
+                                                @table.TableNumber (@(table.Zone ?? "ไม่ระบุโซน")) - @table.Capacity คน
+                                            </option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="TableId" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="NumberOfGuests" class="form-label">จำนวนคน</label>
+                                <input asp-for="NumberOfGuests" type="number" class="form-control"
+                                       min="1" max="50" required />
+                                <span asp-validation-for="NumberOfGuests" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Status" class="form-label">สถานะ</label>
+                                <select asp-for="Status" class="form-select" required>
+                                    <option value="Pending" selected="@(Model.Status == "Pending" ? "selected" : null)">รอชำระเงิน</option>
+                                    <option value="Confirmed" selected="@(Model.Status == "Confirmed" ? "selected" : null)">ยืนยันแล้ว</option>
+                                    <option value="CheckedIn" selected="@(Model.Status == "CheckedIn" ? "selected" : null)">เช็คอินแล้ว</option>
+                                    <option value="Completed" selected="@(Model.Status == "Completed" ? "selected" : null)">เสร็จสิ้น</option>
+                                    <option value="Cancelled" selected="@(Model.Status == "Cancelled" ? "selected" : null)">ยกเลิก</option>
+                                    <option value="NoShow" selected="@(Model.Status == "NoShow" ? "selected" : null)">ไม่มา</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Financial Info (Read-only) -->
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="TotalAmount" class="form-label">ยอดรวม</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">฿</span>
+                                    <input asp-for="TotalAmount" type="number" class="form-control"
+                                           step="0.01" readonly />
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="DepositAmount" class="form-label">มัดจำ</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">฿</span>
+                                    <input asp-for="DepositAmount" type="number" class="form-control"
+                                           step="0.01" readonly />
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="PromoCode" class="form-label">โค้ดส่วนลด</label>
+                                <input asp-for="PromoCode" class="form-control" readonly
+                                       value="@(Model.PromoCode ?? "")" />
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="DiscountAmount" class="form-label">ส่วนลด</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">฿</span>
+                                    <input asp-for="DiscountAmount" type="number" class="form-control"
+                                           step="0.01" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="SpecialRequests" class="form-label">คำขอพิเศษ</label>
+                            <textarea asp-for="SpecialRequests" class="form-control" rows="2">@(Model.SpecialRequests ?? "")</textarea>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> บันทึกการแก้ไข
+                            </button>
+                            <a asp-action="Bookings" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> ยกเลิก
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="col-lg-4">
+            <!-- Payment Info -->
+            @if (Model.Payment != null)
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">ข้อมูลการชำระเงิน</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row small">
+                            <dt class="col-6">สถานะ:</dt>
+                            <dd class="col-6">
+                                <span class="badge bg-@(Model.Payment.Status == "Completed" ? "success" : "warning")">
+                                    @Model.Payment.Status
+                                </span>
+                            </dd>
+                            <dt class="col-6">วันที่ชำระ:</dt>
+                            <dd class="col-6">@Model.Payment.PaymentDate.AddHours(7).ToString("dd/MM/yyyy HH:mm")</dd>
+                            <dt class="col-6">ช่องทาง:</dt>
+                            <dd class="col-6">@(Model.Payment.PaymentMethod ?? "ไม่ระบุ")</dd>
+                            @if (!string.IsNullOrEmpty(Model.Payment.StripePaymentIntentId))
+                            {
+                                <dt class="col-6">Stripe ID:</dt>
+                                <dd class="col-6">
+                                    <small>@Model.Payment.StripePaymentIntentId</small>
+                                </dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">ข้อมูลการชำระเงิน</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">ยังไม่มีข้อมูลการชำระเงิน</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Activity Log -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">ประวัติการดำเนินการ</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li>
+                            <i class="bi bi-plus-circle text-success"></i>
+                            สร้างการจอง: @Model.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")
+                        </li>
+                        @if (Model.ModifiedAt.HasValue)
+                        {
+                            <li>
+                                <i class="bi bi-pencil text-warning"></i>
+                                แก้ไขล่าสุด: @Model.ModifiedAt.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm")
+                            </li>
+                        }
+                        @if (Model.CheckInTime.HasValue)
+                        {
+                            <li>
+                                <i class="bi bi-check-circle text-info"></i>
+                                Check-in: @Model.CheckInTime.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm")
+                            </li>
+                        }
+                        @if (Model.Table?.Branch != null)
+                        {
+                            <li>
+                                <i class="bi bi-geo-alt text-primary"></i>
+                                สาขา: @Model.Table.Branch.Name
+                            </li>
+                            <li>
+                                <i class="bi bi-table text-primary"></i>
+                                โต๊ะ: @Model.Table.TableNumber (@(Model.Table.Zone ?? "ไม่ระบุโซน"))
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-focus ฟิลด์แรก
+            $('input[type="date"]').first().focus();
+
+            // ตรวจสอบการเปลี่ยนแปลงเวลา
+            $('input[name="StartTime"], input[name="EndTime"]').on('change', function() {
+                validateTimeRange();
+            });
+        });
+
+        function validateTimeRange() {
+            var startTime = $('input[name="StartTime"]').val();
+            var endTime = $('input[name="EndTime"]').val();
+
+            if (startTime && endTime) {
+                if (startTime >= endTime) {
+                    alert('เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม');
+                    $('input[name="EndTime"]').focus();
+                }
+            }
+        }
+    </script>
+}

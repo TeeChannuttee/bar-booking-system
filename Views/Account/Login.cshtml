@@ -1,0 +1,68 @@
+﻿@model LoginViewModel
+@{
+    ViewData["Title"] = "เข้าสู่ระบบ";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4">
+                        <i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบ
+                    </h2>
+
+                    <form asp-action="Login" method="post">
+                        <div asp-validation-summary="All" class="alert alert-danger"
+                             style="display: @(ViewData.ModelState.ErrorCount > 0 ? "block" : "none")"></div>
+
+                        <input type="hidden" asp-for="ReturnUrl" />
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">
+                                <i class="bi bi-envelope"></i> อีเมล
+                            </label>
+                            <input asp-for="Email" class="form-control form-control-lg"
+                                   placeholder="email@example.com" autofocus required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">
+                                <i class="bi bi-lock"></i> รหัสผ่าน
+                            </label>
+                            <input asp-for="Password" type="password"
+                                   class="form-control form-control-lg" required />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label">
+                                จำฉันไว้
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบ
+                        </button>
+
+                        <div class="text-center">
+                            <p>ยังไม่มีบัญชี? <a asp-action="Register">สมัครสมาชิก</a></p>
+                            <p><a href="#">ลืมรหัสผ่าน?</a></p>
+                        </div>
+                    </form>
+
+                    <!-- Test Account Info -->
+                    <div class="alert alert-info mt-4">
+                        <h6>Test Account:</h6>
+                        <small>
+                            Email: admin@barbooking.com<br>
+                            Password: Admin@123
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,431 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หน้าแรก - Bar Booking System</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            margin-bottom: 0;
+        }
+
+        .feature-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .card {
+            transition: transform 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+            }
+
+        .btn {
+            transition: all 0.3s ease;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 10;
+            position: relative;
+        }
+
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+
+            .btn:disabled {
+                cursor: not-allowed !important;
+            }
+
+        /* Make sure buttons are clickable */
+        button {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation (if needed) -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-cup-straw"></i> Bar Booking
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-gradient">
+        <div class="container text-center">
+            <h1 class="display-3 fw-bold mb-4">
+                <i class="bi bi-cup-straw"></i> Welcome to Bar Booking
+            </h1>
+            <p class="lead mb-5">จองโต๊ะออนไลน์ ง่าย รวดเร็ว ไม่ต้องรอคิว</p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <button id="bookNowBtn" type="button" class="btn btn-light btn-lg px-5" onclick="goToBooking(event)">
+                    <i class="bi bi-calendar-plus"></i> จองโต๊ะเลย
+                </button>
+                <button id="detailsBtn" type="button" class="btn btn-outline-light btn-lg px-5" onclick="scrollToFeatures(event)">
+                    <i class="bi bi-info-circle"></i> ดูรายละเอียด
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container py-5">
+        <!-- Features Section -->
+        <section id="features" class="py-5">
+            <h2 class="text-center mb-5">ทำไมต้องเลือกเรา?</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 text-center border-0 shadow">
+                        <div class="card-body p-4">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-lightning-fill text-primary" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4>จองง่าย รวดเร็ว</h4>
+                            <p class="text-muted">จองโต๊ะได้ตลอด 24 ชม. เลือกวัน เวลา โต๊ะที่ต้องการ</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 text-center border-0 shadow">
+                        <div class="card-body p-4">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-shield-check text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4>ปลอดภัย 100%</h4>
+                            <p class="text-muted">ชำระเงินผ่าน Stripe ปลอดภัยระดับสากล</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 text-center border-0 shadow">
+                        <div class="card-body p-4">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-gift-fill text-danger" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4>โปรโมชันพิเศษ</h4>
+                            <p class="text-muted">รับส่วนลดและสิทธิพิเศษมากมาย</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Branches Section -->
+        <section class="py-5">
+            <h2 class="text-center mb-5">สาขาของเรา</h2>
+            <div class="row g-4">
+                <!-- Sample Branch 1 -->
+                <div class="col-lg-4">
+                    <div class="card shadow h-100">
+                        <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop"
+                             class="card-img-top" alt="สาขาสีลม" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">📍 สาขาสีลม</h5>
+                            <p class="card-text">
+                                <i class="bi bi-geo-alt"></i> 123 ถนนสีลม แขวงสีลม เขตบางรัก กรุงเทพฯ<br>
+                                <i class="bi bi-clock"></i> เปิดทุกวัน 17:00 - 02:00<br>
+                                <i class="bi bi-telephone"></i> 02-123-4567
+                            </p>
+                            <button onclick="goToBookingWithBranch(1, event)" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-plus"></i> จองโต๊ะ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sample Branch 2 -->
+                <div class="col-lg-4">
+                    <div class="card shadow h-100">
+                        <img src="https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=300&fit=crop"
+                             class="card-img-top" alt="สาขาทองหล่อ" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">📍 สาขาทองหล่อ</h5>
+                            <p class="card-text">
+                                <i class="bi bi-geo-alt"></i> 456 ถนนสุขุมวิท แขวงคลองตัน เขตวัฒนา กรุงเทพฯ<br>
+                                <i class="bi bi-clock"></i> เปิดทุกวัน 17:00 - 02:00<br>
+                                <i class="bi bi-telephone"></i> 02-765-4321
+                            </p>
+                            <button onclick="goToBookingWithBranch(2, event)" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-plus"></i> จองโต๊ะ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sample Branch 3 -->
+                <div class="col-lg-4">
+                    <div class="card shadow h-100">
+                        <img src="https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400&h=300&fit=crop"
+                             class="card-img-top" alt="สาขาเอกมัย" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">📍 สาขาเอกมัย</h5>
+                            <p class="card-text">
+                                <i class="bi bi-geo-alt"></i> 789 ถนนเพชรบุรี แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพฯ<br>
+                                <i class="bi bi-clock"></i> เปิดทุกวัน 17:00 - 02:00<br>
+                                <i class="bi bi-telephone"></i> 02-987-6543
+                            </p>
+                            <button onclick="goToBookingWithBranch(3, event)" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-plus"></i> จองโต๊ะ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Current Promotions -->
+        <section class="py-5">
+            <div class="bg-light rounded p-5">
+                <h2 class="text-center mb-5">🎉 โปรโมชันปัจจุบัน</h2>
+                <div class="row g-4">
+                    <!-- Sample Promo 1 -->
+                    <div class="col-md-6">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="card-title text-primary">NEWBIE20</h5>
+                                        <p class="card-text">สำหรับลูกค้าใหม่ รับส่วนลดทันที</p>
+                                        <small class="text-muted">
+                                            ใช้ได้ถึง 31/12/2025
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-danger fs-6">-20%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sample Promo 2 -->
+                    <div class="col-md-6">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="card-title text-primary">HAPPY500</h5>
+                                        <p class="card-text">Happy Hour ทุกวันศุกร์</p>
+                                        <small class="text-muted">
+                                            ใช้ได้ถึง 31/12/2025
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-danger fs-6">-฿500</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p>&copy; 2025 Bar Booking System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Function to scroll to features section smoothly
+        function scrollToFeatures(event) {
+            console.log('scrollToFeatures called!'); // Debug log
+
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const element = document.getElementById('features');
+            if (element) {
+                const offsetTop = element.offsetTop - 100; // 100px offset for fixed navbar
+                window.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+                console.log('Scrolling to features section');
+            } else {
+                console.error('Features section not found!');
+            }
+        }
+
+        // Function to navigate to booking page
+        function goToBooking(event) {
+            console.log('goToBooking called!'); // Debug log
+
+            // Prevent any default behavior
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            // Show loading state
+            const btn = event ? event.target.closest('button') : document.querySelector('[onclick="goToBooking()"]');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> กำลังโหลด...';
+                btn.disabled = true;
+
+                // Navigate to actual booking page
+                setTimeout(() => {
+                    // Actual navigation to booking page
+                    window.location.href = 'https://localhost:7000/Booking/Create';
+                }, 500); // Shorter delay for better UX
+            } else {
+                // Fallback - direct navigation
+                window.location.href = 'https://localhost:7000/Booking/Create';
+            }
+        }
+
+        // Function to navigate to booking page with specific branch
+        function goToBookingWithBranch(branchId, event) {
+            console.log(`goToBookingWithBranch called with branchId: ${branchId}`);
+
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const btn = event ? event.target.closest('button') : null;
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> กำลังโหลด...';
+                btn.disabled = true;
+            }
+
+            // Navigate to booking page with branch ID
+            setTimeout(() => {
+                window.location.href = `https://localhost:7000/Booking/Create?branchId=${branchId}`;
+            }, 300);
+        }
+
+        // Add click handlers for smooth scrolling to any anchor links
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle all anchor links that start with #
+            const anchorLinks = document.querySelectorAll('a[href^="#"]');
+
+            anchorLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+
+                    // Skip if it's just "#"
+                    if (href === '#') return;
+
+                    const targetId = href.substring(1);
+                    const targetElement = document.getElementById(targetId);
+
+                    if (targetElement) {
+                        e.preventDefault();
+                        const offsetTop = targetElement.offsetTop - 100;
+
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up buttons...');
+
+            // Additional event listeners for main buttons (backup)
+            const bookNowBtn = document.getElementById('bookNowBtn');
+            const detailsBtn = document.getElementById('detailsBtn');
+
+            if (bookNowBtn) {
+                console.log('Book now button found!');
+                // Add click event listener as backup
+                bookNowBtn.addEventListener('click', function(e) {
+                    console.log('Book now button clicked via event listener!');
+                    goToBooking(e);
+                });
+
+                // Make sure button is clickable
+                bookNowBtn.style.pointerEvents = 'auto';
+                bookNowBtn.style.cursor = 'pointer';
+
+                // Add visual feedback on hover
+                bookNowBtn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+                });
+
+                bookNowBtn.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+
+            } else {
+                console.error('Book now button not found!');
+            }
+
+            if (detailsBtn) {
+                console.log('Details button found!');
+                detailsBtn.addEventListener('click', function(e) {
+                    console.log('Details button clicked via event listener!');
+                    scrollToFeatures(e);
+                });
+
+                detailsBtn.style.pointerEvents = 'auto';
+                detailsBtn.style.cursor = 'pointer';
+            }
+
+            // Add hover effect to cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.boxShadow = '';
+                });
+            });
+
+            // Test all buttons
+            console.log('All buttons:', document.querySelectorAll('button'));
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BarBookingSystem.Models.ViewModels
+{
+    public class LoginViewModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        public bool RememberMe { get; set; }
+
+        // ✅ เพิ่ม default value และทำให้เป็น nullable
+        public string? ReturnUrl { get; set; } = "";
+    }
+}

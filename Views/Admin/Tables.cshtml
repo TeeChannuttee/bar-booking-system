@@ -1,0 +1,110 @@
+﻿@model List<BarBookingSystem.Models.Table>
+@{
+    ViewData["Title"] = "จัดการโต๊ะ";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-table"></i> จัดการโต๊ะ</h2>
+        <a asp-action="CreateTable" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> เพิ่มโต๊ะใหม่
+        </a>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <!-- Group by Branch -->
+        @foreach (var branchGroup in Model.GroupBy(t => t.Branch))
+        {
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shop"></i> @branchGroup.Key?.Name
+                        <span class="badge bg-white text-primary ms-2">
+                            @branchGroup.Count() โต๊ะ
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>เลขโต๊ะ</th>
+                                    <th>โซน</th>
+                                    <th>ประเภท</th>
+                                    <th>ความจุ</th>
+                                    <th>ขั้นต่ำ</th>
+                                    <th>ค่าโต๊ะ</th>
+                                    <th>สถานะ</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var table in branchGroup.OrderBy(t => t.TableNumber))
+                                {
+                                    <tr>
+                                        <td><strong>@table.TableNumber</strong></td>
+                                        <td>@table.Zone</td>
+                                        <td>@table.TableType</td>
+                                        <td>@table.Capacity คน</td>
+                                        <td>฿@table.MinimumSpend.ToString("N0")</td>
+                                        <td>฿@table.BasePrice.ToString("N0")</td>
+                                        <td>
+                                            @if (table.IsActive)
+                                            {
+                                                <span class="badge bg-success">ใช้งาน</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">ปิด</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a asp-action="EditTable" asp-route-id="@table.Id"
+                                                   class="btn btn-outline-primary" title="แก้ไข">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger"
+                                                        onclick="deleteTable(@table.Id)" title="ลบ">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> ยังไม่มีข้อมูลโต๊ะ
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function deleteTable(id) {
+            Swal.fire({
+                title: 'ลบโต๊ะ?',
+                text: 'คุณแน่ใจหรือไม่?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'ลบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/Admin/DeleteTable/' + id;
+                }
+            });
+        }
+    </script>
+}

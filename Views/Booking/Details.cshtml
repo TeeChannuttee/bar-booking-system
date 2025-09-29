@@ -1,0 +1,272 @@
+﻿@model BookingDetailsViewModel
+@{
+    ViewData["Title"] = "รายละเอียดการจอง";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-receipt"></i> รายละเอียดการจอง
+                        </h5>
+                        <span class="badge bg-white text-primary">
+                            @Model.Booking.BookingCode
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Status Badge -->
+                    <div class="mb-3">
+                        @{
+                            var statusColor = Model.Booking.Status switch
+                            {
+                                "Confirmed" => "success",
+                                "Pending" => "warning",
+                                "Cancelled" => "danger",
+                                "CheckedIn" => "info",
+                                _ => "secondary"
+                            };
+                        }
+                        <span class="badge bg-@statusColor fs-6">
+                            สถานะ: @Model.Booking.Status
+                        </span>
+                    </div>
+
+                    <!-- Booking Details -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">ข้อมูลการจอง</h6>
+                            <dl class="row">
+                                <dt class="col-5">วันที่:</dt>
+                                <dd class="col-7">
+                                    @Model.Booking.BookingDate.ToString("dddd dd MMMM yyyy")
+                                </dd>
+
+                                <dt class="col-5">เวลา:</dt>
+                                <dd class="col-7">
+                                    @Model.Booking.StartTime.ToString(@"hh\:mm") -
+                                    @Model.Booking.EndTime.ToString(@"hh\:mm")
+                                </dd>
+
+                                <dt class="col-5">จำนวนคน:</dt>
+                                <dd class="col-7">@Model.Booking.NumberOfGuests ท่าน</dd>
+
+                                <dt class="col-5">จองเมื่อ:</dt>
+                                <dd class="col-7">
+                                    @Model.Booking.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                </dd>
+                            </dl>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-muted">ข้อมูลโต๊ะ</h6>
+                            <dl class="row">
+                                <dt class="col-5">สาขา:</dt>
+                                <dd class="col-7">@Model.Booking.Table.Branch.Name</dd>
+
+                                <dt class="col-5">โต๊ะ:</dt>
+                                <dd class="col-7">@Model.Booking.Table.TableNumber</dd>
+
+                                <dt class="col-5">โซน:</dt>
+                                <dd class="col-7">@Model.Booking.Table.Zone</dd>
+
+                                <dt class="col-5">ประเภท:</dt>
+                                <dd class="col-7">@Model.Booking.Table.TableType</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Payment Info -->
+                    <h6 class="text-muted">ข้อมูลการชำระเงิน</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <td>ยอดรวม:</td>
+                                <td class="text-end">฿@Model.Booking.TotalAmount.ToString("N0")</td>
+                            </tr>
+                            @if (Model.Booking.DiscountAmount > 0)
+                            {
+                                <tr class="text-success">
+                                    <td>ส่วนลด (@Model.Booking.PromoCode):</td>
+                                    <td class="text-end">-฿@Model.Booking.DiscountAmount.ToString("N0")</td>
+                                </tr>
+                            }
+                            <tr class="table-primary">
+                                <th>มัดจำ (30%):</th>
+                                <th class="text-end">฿@Model.Booking.DepositAmount.ToString("N0")</th>
+                            </tr>
+                            @if (Model.Booking.Payment != null)
+                            {
+                                <tr>
+                                    <td>สถานะการชำระ:</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-@(Model.Booking.Payment.Status == "Completed" ? "success" : "warning")">
+                                            @Model.Booking.Payment.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </table>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Booking.SpecialRequests))
+                    {
+                        <hr>
+                        <h6 class="text-muted">คำขอพิเศษ</h6>
+                        <p>@Model.Booking.SpecialRequests</p>
+                    }
+
+                    <!-- Location Map -->
+                    <hr>
+                    <h6 class="text-muted">ที่อยู่</h6>
+                    <p>
+                        <i class="bi bi-geo-alt"></i> @Model.Booking.Table.Branch.Address<br>
+                        <i class="bi bi-telephone"></i> @Model.Booking.Table.Branch.Phone
+                    </p>
+
+                    <!-- Embedded Map (Optional) -->
+                    <div class="ratio ratio-16x9 mb-3">
+                        <iframe src="https://maps.google.com/maps?q=@Model.Booking.Table.Branch.Latitude,@Model.Booking.Table.Branch.Longitude&z=15&output=embed"
+                                style="border:0;" allowfullscreen="" loading="lazy">
+                        </iframe>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex gap-2">
+                        @if (Model.CanCancel)
+                        {
+                            <button type="button" class="btn btn-warning"
+                                    onclick="cancelBooking(@Model.Booking.Id)">
+                                <i class="bi bi-x-circle"></i> ยกเลิกการจอง
+                            </button>
+                        }
+
+                        @if (Model.Booking.Status == "Confirmed")
+                        {
+                            <button type="button" class="btn btn-info" onclick="printBooking()">
+                                <i class="bi bi-printer"></i> พิมพ์
+                            </button>
+
+                            <button type="button" class="btn btn-success" onclick="addToCalendar()">
+                                <i class="bi bi-calendar-plus"></i> เพิ่มในปฏิทิน
+                            </button>
+                        }
+
+                        <a asp-action="MyBookings" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> กลับ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - QR Code -->
+        <div class="col-lg-4">
+            @if (Model.Booking.Status == "Confirmed")
+            {
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0 text-center">QR Code สำหรับ Check-in</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="data:image/png;base64,@Model.QRCodeBase64"
+                             alt="QR Code" class="img-fluid mb-3" style="max-width: 250px;">
+                        <p class="text-muted small">
+                            แสดง QR Code นี้ให้พนักงานเมื่อมาถึงร้าน
+                        </p>
+                        <button class="btn btn-outline-primary btn-sm" onclick="downloadQR()">
+                            <i class="bi bi-download"></i> ดาวน์โหลด QR
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @if (Model.CanCancel)
+            {
+                <div class="card mt-3 border-warning">
+                    <div class="card-body">
+                        <h6 class="card-title">นโยบายการยกเลิก</h6>
+                        <ul class="small mb-0">
+                            <li>ยกเลิกล่วงหน้า 24 ชั่วโมง</li>
+                            <li>คืนเงิน 70% ของมัดจำ</li>
+                            <li>คืนเงินภายใน 7-14 วันทำการ</li>
+                        </ul>
+                        @if (Model.RefundAmount > 0)
+                        {
+                            <div class="alert alert-warning mt-3 mb-0">
+                                คืนเงิน: <strong>฿@Model.RefundAmount.ToString("N0")</strong>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function cancelBooking(id) {
+            Swal.fire({
+                title: 'ยืนยันการยกเลิก?',
+                html: 'คุณจะได้รับเงินคืน <strong>฿@Model.RefundAmount.ToString("N0")</strong><br>ภายใน 7-14 วันทำการ',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ยกเลิกการจอง',
+                cancelButtonText: 'ไม่ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Submit form
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/Booking/Cancel/' + id;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        function printBooking() {
+            window.print();
+        }
+
+        function downloadQR() {
+            var link = document.createElement('a');
+            link.download = 'QRCode-@(Model.Booking.BookingCode).png';
+            link.href = 'data:image/png;base64,@Model.QRCodeBase64';
+            link.click();
+        }
+
+        function addToCalendar() {
+            // Generate ICS file
+            var event = {
+                title: 'Bar Booking - @Model.Booking.BookingCode',
+                location: '@Model.Booking.Table.Branch.Address',
+                start: '@Model.Booking.BookingDate.Add(Model.Booking.StartTime).ToString("yyyyMMddTHHmmss")',
+                end: '@Model.Booking.BookingDate.Add(Model.Booking.EndTime).ToString("yyyyMMddTHHmmss")'
+            };
+
+            // Create and download ICS file
+            var icsContent = `BEGIN:VCALENDAR
+        VERSION:2.0
+        BEGIN:VEVENT
+        SUMMARY:${event.title}
+        LOCATION:${event.location}
+        DTSTART:${event.start}
+        DTEND:${event.end}
+        END:VEVENT
+        END:VCALENDAR`;
+
+            var blob = new Blob([icsContent], { type: 'text/calendar' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+        link.download = 'booking-@(Model.Booking.BookingCode).ics';
+            link.click();
+        }
+    </script>
+}

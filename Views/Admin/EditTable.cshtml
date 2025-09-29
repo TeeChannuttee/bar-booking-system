@@ -1,0 +1,215 @@
+﻿@model Table
+@{
+    ViewData["Title"] = "แก้ไขโต๊ะ";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil-square"></i> แก้ไขโต๊ะ: @Model.TableNumber
+                    </h4>
+                </div>
+                <div class="card-body">
+
+                    <!-- Display Validation Summary -->
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none"></div>
+
+                    <form asp-action="EditTable" method="post" novalidate>
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="BranchId" class="form-label">สาขา <span class="text-danger">*</span></label>
+                                <select asp-for="BranchId" class="form-select" required
+                                        asp-items="@(new SelectList(ViewBag.Branches, "Id", "Name", Model.BranchId))">
+                                    <option value="">-- เลือกสาขา --</option>
+                                </select>
+                                <span asp-validation-for="BranchId" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TableNumber" class="form-label">หมายเลขโต๊ะ <span class="text-danger">*</span></label>
+                                <input asp-for="TableNumber" class="form-control" required
+                                       placeholder="เช่น A1, B2, VIP01" />
+                                <span asp-validation-for="TableNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Zone" class="form-label">โซน <span class="text-danger">*</span></label>
+                                <select asp-for="Zone" class="form-select" required>
+                                    <option value="">-- เลือกโซน --</option>
+                                    <option value="Indoor">Indoor (ในร่ม)</option>
+                                    <option value="Outdoor">Outdoor (กลางแจ้ง)</option>
+                                    <option value="Smoking">Smoking (สูบบุหรี่)</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="Private">Private (ส่วนตัว)</option>
+                                </select>
+                                <span asp-validation-for="Zone" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TableType" class="form-label">ประเภท <span class="text-danger">*</span></label>
+                                <select asp-for="TableType" class="form-select" required>
+                                    <option value="">-- เลือกประเภท --</option>
+                                    <option value="Standard">Standard (มาตรฐาน)</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="Private">Private (ส่วนตัว)</option>
+                                </select>
+                                <span asp-validation-for="TableType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Capacity" class="form-label">ความจุ (คน) <span class="text-danger">*</span></label>
+                                <input asp-for="Capacity" type="number" class="form-control"
+                                       min="1" max="50" required placeholder="เช่น 4" />
+                                <div class="form-text">ระบุจำนวนคนที่นั่งได้สูงสุด</div>
+                                <span asp-validation-for="Capacity" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="MinimumSpend" class="form-label">ขั้นต่ำ (บาท) <span class="text-danger">*</span></label>
+                                <input asp-for="MinimumSpend" type="number" class="form-control"
+                                       min="0" step="100" required placeholder="เช่น 1000" />
+                                <div class="form-text">ยอดใช้จ่ายขั้นต่ำต่อโต๊ะ</div>
+                                <span asp-validation-for="MinimumSpend" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="BasePrice" class="form-label">ค่าโต๊ะ (บาท)</label>
+                                <input asp-for="BasePrice" type="number" class="form-control"
+                                       min="0" step="100" placeholder="เช่น 500" />
+                                <div class="form-text">ค่าจองโต๊ะ (ถ้ามี)</div>
+                                <span asp-validation-for="BasePrice" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FloorPosition" class="form-label">ตำแหน่งในผัง</label>
+                                <input asp-for="FloorPosition" class="form-control"
+                                       placeholder="เช่น A1, ชั้น 2 ห้อง 5" />
+                                <div class="form-text">ตำแหน่งที่ตั้งของโต๊ะในแผนผัง</div>
+                                <span asp-validation-for="FloorPosition" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">สถานะการใช้งาน</label>
+                                <div class="mt-2">
+                                    <div class="form-check form-switch">
+                                        <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                                        <label asp-for="IsActive" class="form-check-label">
+                                            เปิดใช้งาน
+                                        </label>
+                                    </div>
+                                    <div class="form-text">ปิดการใช้งานจะทำให้ไม่สามารถจองโต๊ะนี้ได้</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">หมายเหตุ</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"
+                                      placeholder="บันทึกข้อมูลเพิ่มเติมเกี่ยวกับโต๊ะ เช่น อุปกรณ์พิเศษ ข้อจำกัด"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> บันทึกการแก้ไข
+                            </button>
+                            <a asp-action="Tables" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> ยกเลิก
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Usage History -->
+            @if (ViewBag.RecentBookings != null && ((IEnumerable<dynamic>)ViewBag.RecentBookings).Any())
+            {
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> ประวัติการจองล่าสุด
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>วันที่</th>
+                                        <th>เวลา</th>
+                                        <th>ลูกค้า</th>
+                                        <th>จำนวนคน</th>
+                                        <th>สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var booking in ViewBag.RecentBookings)
+                                    {
+                                        <tr>
+                                            <td>@booking.BookingDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")</td>
+                                            <td>@booking.User.FullName</td>
+                                            <td>@booking.NumberOfGuests คน</td>
+                                            <td>
+                                                @{
+                                                    var badgeClass = booking.Status switch
+                                                    {
+                                                        "Confirmed" => "bg-success",
+                                                        "Pending" => "bg-warning",
+                                                        "Cancelled" => "bg-danger",
+                                                        "CheckedIn" => "bg-info",
+                                                        "Completed" => "bg-secondary",
+                                                        _ => "bg-light text-dark"
+                                                    };
+                                                }
+                                                <span class="badge @badgeClass">@booking.Status</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (ViewBag.RecentBookings != null)
+            {
+                <div class="card mt-4">
+                    <div class="card-body text-center text-muted">
+                        <i class="bi bi-calendar-x display-1"></i>
+                        <p class="mt-3">ยังไม่มีประวัติการจองสำหรับโต๊ะนี้</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // Show validation summary if there are errors
+            if ($('.field-validation-error').length > 0) {
+                $('.alert-danger').removeClass('d-none');
+            }
+
+            // Auto-focus first error field
+            $('.field-validation-error').first().prev('input, select, textarea').focus();
+        });
+    </script>
+}

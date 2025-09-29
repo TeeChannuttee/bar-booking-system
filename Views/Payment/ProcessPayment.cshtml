@@ -1,0 +1,208 @@
+﻿@model Booking
+@{
+    ViewData["Title"] = "ชำระเงิน";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-credit-card"></i> ชำระเงินมัดจำ</h4>
+                </div>
+                <div class="card-body">
+                    <!-- ✅ เพิ่ม AntiForgeryToken -->
+                    @Html.AntiForgeryToken()
+
+                    <!-- Booking Summary -->
+                    <div class="alert alert-info">
+                        <h5>สรุปการจอง</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <dl class="row mb-0">
+                                    <dt class="col-5">รหัสการจอง:</dt>
+                                    <dd class="col-7">@Model.BookingCode</dd>
+
+                                    <dt class="col-5">สาขา:</dt>
+                                    <dd class="col-7">@Model.Table.Branch.Name</dd>
+
+                                    <dt class="col-5">วันที่:</dt>
+                                    <dd class="col-7">@Model.BookingDate.ToString("dd/MM/yyyy")</dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row mb-0">
+                                    <dt class="col-5">เวลา:</dt>
+                                    <dd class="col-7">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</dd>
+
+                                    <dt class="col-5">โต๊ะ:</dt>
+                                    <dd class="col-7">@Model.Table.TableNumber (@Model.Table.Zone)</dd>
+
+                                    <dt class="col-5">จำนวน:</dt>
+                                    <dd class="col-7">@Model.NumberOfGuests คน</dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <hr>
+                        <!-- ✅ แสดงส่วนลดถ้ามี -->
+                        <div class="row">
+                            @if (!string.IsNullOrEmpty(Model.PromoCode))
+                            {
+                                <div class="col-12 mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>ยอดเต็ม:</span>
+                                        <span>฿@((Model.TotalAmount + Model.DiscountAmount).ToString("N0"))</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-success">
+                                        <span>ส่วนลด (@Model.PromoCode):</span>
+                                        <span>-฿@Model.DiscountAmount.ToString("N0")</span>
+                                    </div>
+                                    <hr class="my-1">
+                                </div>
+                            }
+                            <div class="col-6">
+                                <strong>ยอดรวม:</strong> ฿@Model.TotalAmount.ToString("N0")
+                            </div>
+                            <div class="col-6 text-end">
+                                <strong class="text-primary">มัดจำที่ต้องชำระ: ฿@Model.DepositAmount.ToString("N0")</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stripe Payment Form -->
+                    <form id="payment-form">
+                        <div id="payment-element">
+                            <!-- Stripe Elements will be inserted here -->
+                        </div>
+
+                        <div id="payment-message" class="text-danger mt-2" style="display: none;"></div>
+
+                        <button id="submit-button" class="btn btn-primary btn-lg w-100 mt-3">
+                            <span id="button-text">
+                                <i class="bi bi-lock"></i> ชำระเงิน ฿@Model.DepositAmount.ToString("N0")
+                            </span>
+                            <span id="spinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <!-- Test Card Info -->
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-info-circle"></i> Test Card Numbers (ไม่เสียเงินจริง):</h6>
+                        <ul class="mb-0 small">
+                            <li>✅ Success: <code>4242 4242 4242 4242</code></li>
+                            <li>🔐 3D Secure: <code>4000 0025 0000 3155</code></li>
+                            <li>❌ Decline: <code>4000 0000 0000 9995</code></li>
+                        </ul>
+                        <small>ใช้วันหมดอายุในอนาคต และ CVC 3 หลักใดๆ</small>
+                    </div>
+
+                    <!-- ✅ ปุ่มข้ามการชำระเงินสำหรับทดสอบ -->
+                    <div class="text-center mt-3">
+                        <a href="/Payment/Success?bookingId=@Model.Id" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-skip-forward"></i> ข้ามการชำระเงิน (สำหรับทดสอบ)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        const stripe = Stripe('@ViewBag.StripePublishableKey');
+        let elements;
+
+        initialize();
+
+        async function initialize() {
+            try {
+                // ✅ แก้ไข: ใช้ POST กับ form data แทน JSON
+                const formData = new FormData();
+                formData.append('bookingId', @Model.Id);
+                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+                const response = await fetch('/Payment/CreatePaymentIntent', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+
+                if (result.error) {
+                    document.querySelector('#payment-message').textContent = result.error;
+                    document.querySelector('#payment-message').style.display = 'block';
+                    return;
+                }
+
+                const { clientSecret } = result;
+
+                // Create Stripe Elements
+                const appearance = {
+                    theme: 'stripe',
+                    variables: {
+                        colorPrimary: '#667eea',
+                    }
+                };
+
+                elements = stripe.elements({ appearance, clientSecret });
+
+                const paymentElement = elements.create('payment', {
+                    layout: 'tabs'
+                });
+                paymentElement.mount('#payment-element');
+            } catch (error) {
+                console.error('Error initializing payment:', error);
+                document.querySelector('#payment-message').textContent = 'เกิดข้อผิดพลาดในการเริ่มต้นการชำระเงิน กรุณาลองใหม่';
+                document.querySelector('#payment-message').style.display = 'block';
+            }
+        }
+
+        document.getElementById('payment-form').addEventListener('submit', handleSubmit);
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            setLoading(true);
+
+            if (!elements) {
+                setLoading(false);
+                return;
+            }
+
+            const { error } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: window.location.origin + '/Payment/Success?bookingId=@Model.Id'
+                }
+            });
+
+            if (error) {
+                const messageContainer = document.querySelector('#payment-message');
+                messageContainer.textContent = error.message;
+                messageContainer.style.display = 'block';
+                setLoading(false);
+            }
+        }
+
+        function setLoading(isLoading) {
+            const submitButton = document.getElementById('submit-button');
+            const spinner = document.getElementById('spinner');
+            const buttonText = document.getElementById('button-text');
+
+            if (isLoading) {
+                submitButton.disabled = true;
+                spinner.style.display = 'inline-block';
+                buttonText.style.display = 'none';
+            } else {
+                submitButton.disabled = false;
+                spinner.style.display = 'none';
+                buttonText.style.display = 'inline';
+            }
+        }
+    </script>
+}

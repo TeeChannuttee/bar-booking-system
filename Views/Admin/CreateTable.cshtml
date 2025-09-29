@@ -1,0 +1,198 @@
+﻿@model Table
+@{
+    ViewData["Title"] = "เพิ่มโต๊ะใหม่";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> เพิ่มโต๊ะใหม่
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateTable" method="post">
+                        @Html.AntiForgeryToken()
+                            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="BranchId" class="form-label">
+                                    <i class="bi bi-shop"></i> สาขา *
+                                </label>
+                                <select asp-for="BranchId" class="form-select" required>
+                                    <option value="">-- เลือกสาขา --</option>
+                                    @foreach (var branch in ViewBag.Branches)
+                                    {
+                                        <option value="@branch.Id">@branch.Name</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="BranchId" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TableNumber" class="form-label">
+                                    <i class="bi bi-hash"></i> หมายเลขโต๊ะ *
+                                </label>
+                                <input asp-for="TableNumber" class="form-control"
+                                       placeholder="เช่น A01, V01, P01" required />
+                                <span asp-validation-for="TableNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Zone" class="form-label">
+                                    <i class="bi bi-map"></i> โซน *
+                                </label>
+                                <select asp-for="Zone" class="form-select" required>
+                                    <option value="">-- เลือกโซน --</option>
+                                    <option value="Indoor">Indoor (ในร่ม)</option>
+                                    <option value="Outdoor">Outdoor (กลางแจ้ง)</option>
+                                    <option value="Smoking">Smoking (สูบบุหรี่ได้)</option>
+                                    <option value="VIP">VIP Zone</option>
+                                    <option value="Private">Private Room</option>
+                                </select>
+                                <span asp-validation-for="Zone" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TableType" class="form-label">
+                                    <i class="bi bi-tag"></i> ประเภท *
+                                </label>
+                                <select asp-for="TableType" class="form-select" required>
+                                    <option value="">-- เลือกประเภท --</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="Private">Private</option>
+                                </select>
+                                <span asp-validation-for="TableType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Capacity" class="form-label">
+                                    <i class="bi bi-people"></i> ความจุ (คน) *
+                                </label>
+                                <input asp-for="Capacity" type="number" class="form-control"
+                                       min="1" max="50" required />
+                                <span asp-validation-for="Capacity" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="MinimumSpend" class="form-label">
+                                    <i class="bi bi-cash-coin"></i> ขั้นต่ำ (บาท) *
+                                </label>
+                                <input asp-for="MinimumSpend" type="number" class="form-control"
+                                       min="0" step="100" required />
+                                <span asp-validation-for="MinimumSpend" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="BasePrice" class="form-label">
+                                    <i class="bi bi-tag-fill"></i> ค่าโต๊ะ (บาท)
+                                </label>
+                                <input asp-for="BasePrice" type="number" class="form-control"
+                                       min="0" step="100" value="0" />
+                                <span asp-validation-for="BasePrice" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FloorPosition" class="form-label">
+                                <i class="bi bi-pin-map"></i> ตำแหน่งในผัง (X,Y)
+                            </label>
+                            <input asp-for="FloorPosition" class="form-control"
+                                   placeholder="เช่น 10,20" />
+                            <small class="text-muted">สำหรับแสดงตำแหน่งบนแผนผังร้าน</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">
+                                <i class="bi bi-chat-text"></i> หมายเหตุ
+                            </label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"
+                                      placeholder="เช่น ใกล้เวที, มีระบบคาราโอเกะ"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsActive" class="form-check-input" checked />
+                                <label asp-for="IsActive" class="form-check-label">
+                                    เปิดใช้งานทันที
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> บันทึก
+                            </button>
+                            <a asp-action="Tables" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> ยกเลิก
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table Preview -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">ตัวอย่างข้อมูลโต๊ะ</h5>
+                </div>
+                <div class="card-body" id="tablePreview">
+                    <div class="alert alert-info">
+                        กรอกข้อมูลด้านบนเพื่อดูตัวอย่าง
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Live preview
+        $('input, select').on('change keyup', function() {
+            updatePreview();
+        });
+
+        function updatePreview() {
+            var tableNumber = $('#TableNumber').val() || 'XXX';
+            var zone = $('#Zone option:selected').text() || '-';
+            var type = $('#TableType').val() || '-';
+            var capacity = $('#Capacity').val() || '0';
+            var minimum = $('#MinimumSpend').val() || '0';
+            var basePrice = $('#BasePrice').val() || '0';
+
+            var preview = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5><i class="bi bi-table"></i> โต๊ะ ${tableNumber}</h5>
+                        <dl class="row">
+                            <dt class="col-4">โซน:</dt>
+                            <dd class="col-8">${zone}</dd>
+                            <dt class="col-4">ประเภท:</dt>
+                            <dd class="col-8">${type}</dd>
+                            <dt class="col-4">ความจุ:</dt>
+                            <dd class="col-8">${capacity} คน</dd>
+                            <dt class="col-4">ขั้นต่ำ:</dt>
+                            <dd class="col-8">฿${parseInt(minimum).toLocaleString()}</dd>
+                            <dt class="col-4">ค่าโต๊ะ:</dt>
+                            <dd class="col-8">฿${parseInt(basePrice).toLocaleString()}</dd>
+                            <dt class="col-4">รวม:</dt>
+                            <dd class="col-8"><strong>฿${(parseInt(minimum) + parseInt(basePrice)).toLocaleString()}</strong></dd>
+                        </dl>
+                    </div>
+                </div>
+            `;
+
+            $('#tablePreview').html(preview);
+        }
+    </script>
+}

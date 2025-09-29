@@ -1,0 +1,475 @@
+﻿@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h2>
+
+    <!-- Stats Cards Row -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-primary border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                การจองวันนี้
+                            </div>
+                            <div class="h5 mb-0 fw-bold">@Model.TodayBookings</div>
+                            <div class="text-xs text-muted">Check-in: @Model.TodayCheckIns</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-success border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                รายได้วันนี้
+                            </div>
+                            <div class="h5 mb-0 fw-bold">฿@Model.TodayRevenue.ToString("N0")</div>
+                            <div class="text-xs text-muted">ลูกค้าใหม่: @Model.TodayNewCustomers</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-info border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                รอ Check-in วันนี้
+                            </div>
+                            <div class="h5 mb-0 fw-bold">@Model.TodayPendingCheckIns</div>
+                            <div class="text-xs text-muted">จาก @Model.TodayBookings การจอง</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-warning border-4 h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                อัตราการเติบโต
+                            </div>
+                            <div class="h5 mb-0 fw-bold">
+                                @if (Model.BookingGrowthRate > 0)
+                                {
+                                    <span class="text-success">+@Model.BookingGrowthRate.ToString("F1")%</span>
+                                }
+                                else if (Model.BookingGrowthRate < 0)
+                                {
+                                    <span class="text-danger">@Model.BookingGrowthRate.ToString("F1")%</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">0.0%</span>
+                                }
+                            </div>
+                            <div class="text-xs text-muted">เทียบสัปดาห์ก่อน</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-graph-up fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Revenue Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary">รายได้ 7 วันย้อนหลัง</h6>
+                    <div>
+                        <span class="text-muted">รวม: ฿@Model.WeekRevenue.ToString("N0")</span>
+                        <span class="ms-3 text-info">เฉลี่ย/การจอง: ฿@Model.AverageRevenuePerBooking.ToString("N0")</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone Chart -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">การจองแต่ละโซน (สัปดาห์นี้)</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.BookingsByZone.Any())
+                    {
+                        <canvas id="zoneChart" style="height: 300px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-pie-chart fs-1"></i>
+                            <p class="mt-2">ไม่มีข้อมูลการจอง</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Summary Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-start border-primary border-4">
+                <div class="card-body">
+                    <h6 class="text-primary">การจองสัปดาห์นี้</h6>
+                    <div class="h4 fw-bold">@Model.WeekBookings</div>
+                    <small class="text-muted">การยกเลิก: @Model.WeekCancellations</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-success border-4">
+                <div class="card-body">
+                    <h6 class="text-success">รายได้สัปดาห์นี้</h6>
+                    <div class="h4 fw-bold">฿@Model.WeekRevenue.ToString("N0")</div>
+                    <small class="text-muted">เฉลี่ย/การจอง: ฿@Model.AverageRevenuePerBooking.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-info border-4">
+                <div class="card-body">
+                    <h6 class="text-info">ลูกค้าใหม่</h6>
+                    <div class="h4 fw-bold">@Model.WeekNewCustomers</div>
+                    <small class="text-muted">สัปดาห์นี้</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-warning border-4">
+                <div class="card-body">
+                    <h6 class="text-warning">อัตราการยกเลิก</h6>
+                    <div class="h4 fw-bold">@Model.CancellationRate.ToString("F1")%</div>
+                    <small class="text-muted">@Model.WeekCancellations ในสัปดาห์นี้</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Bookings Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary">การจองที่กำลังมาถึง</h6>
+            <a asp-action="Bookings" class="btn btn-sm btn-primary">
+                ดูทั้งหมด <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="card-body">
+            @if (Model.UpcomingBookings.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>รหัส</th>
+                                <th>ลูกค้า</th>
+                                <th>วันที่</th>
+                                <th>เวลา</th>
+                                <th>โต๊ะ</th>
+                                <th>สาขา</th>
+                                <th>จำนวนแขก</th>
+                                <th>สถานะ</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var booking in Model.UpcomingBookings)
+                            {
+                                <tr>
+                                    <td><code>@booking.BookingCode</code></td>
+                                    <td>
+                                        @booking.User.FullName
+                                        @if (!string.IsNullOrEmpty(booking.User.PhoneNumber))
+                                        {
+                                            <br>
+                                
+                                            <small class="text-muted">@booking.User.PhoneNumber</small>
+                                        }
+                                    </td>
+                                    <td>@booking.BookingDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">@booking.Table.TableNumber</span>
+                                        @if (!string.IsNullOrEmpty(booking.Table.Zone))
+                                        {
+                                            <br>
+                                
+                                            <small class="text-muted">@booking.Table.Zone</small>
+                                        }
+                                    </td>
+                                    <td>@booking.Table.Branch.Name</td>
+                                    <td>@booking.NumberOfGuests คน</td>
+                                    <td>
+                                        @switch (booking.Status)
+                                        {
+                                            case "Confirmed":
+                                                <span class="badge bg-success">Confirmed</span>
+                                                break;
+                                            case "Pending":
+                                                <span class="badge bg-warning">Pending</span>
+                                                break;
+                                            case "CheckedIn":
+                                                <span class="badge bg-info">Checked In</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-secondary">@booking.Status</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="EditBooking" asp-route-id="@booking.Id"
+                                               class="btn btn-outline-primary" title="ดูรายละเอียด">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            @if (booking.Status == "Confirmed")
+                                            {
+                                                <button type="button" class="btn btn-outline-success"
+                                                        onclick="checkInBooking('@booking.BookingCode')"
+                                                        title="Check-in">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-calendar-x fs-1"></i>
+                    <p class="mt-2">ไม่มีการจองที่กำลังมาถึง</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    @if (Model.RecentBookings.Any())
+    {
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 fw-bold text-primary">กิจกรรมล่าสุด (24 ชั่วโมง)</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @foreach (var booking in Model.RecentBookings.Take(6))
+                    {
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="border rounded p-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">@booking.User.FullName</h6>
+                                        <p class="mb-1 text-muted small">
+                                            @booking.BookingDate.ToString("dd/MM") @booking.StartTime.ToString(@"hh\:mm")
+                                        </p>
+                                        <p class="mb-0 small">
+                                            โต๊ะ @booking.Table.TableNumber
+                                            @if (!string.IsNullOrEmpty(booking.Table.Zone))
+                                            {
+                                                <span>(@booking.Table.Zone)</span>
+                                            }
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-primary">@booking.Status</span>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock"></i>
+                                        @booking.CreatedAt.ToString("HH:mm")
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.RevenueChart.Select(x => x.Label))),
+                datasets: [{
+                    label: 'รายได้ (บาท)',
+                    data: @Html.Raw(Json.Serialize(Model.RevenueChart.Select(x => x.Value))),
+                    borderColor: 'rgb(102, 126, 234)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: 'rgb(102, 126, 234)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'รายได้: ฿' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '฿' + value.toLocaleString();
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Zone Chart
+        @if (Model.BookingsByZone.Any())
+        {
+                <text>
+                const zoneCtx = document.getElementById('zoneChart').getContext('2d');
+                new Chart(zoneCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(Model.BookingsByZone.Keys)),
+                        datasets: [{
+                            data: @Html.Raw(Json.Serialize(Model.BookingsByZone.Values)),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 206, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)',
+                                'rgba(255, 159, 64, 0.8)',
+                                'rgba(199, 199, 199, 0.8)'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                </text>
+        }
+
+        // Check-in function
+        function checkInBooking(bookingCode) {
+            if (!confirm('ยืนยันการ Check-in สำหรับรหัส ' + bookingCode + '?')) {
+                return;
+            }
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('bookingCode', bookingCode);
+            formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+            fetch('@Url.Action("CheckIn", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Check-in สำเร็จ: ' + data.message);
+                    location.reload();
+                } else {
+                    alert('Check-in ไม่สำเร็จ: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาดในการ Check-in');
+            });
+        }
+
+        // Auto refresh every 5 minutes
+        setTimeout(function() {
+            location.reload();
+        }, 300000);
+    </script>
+}

@@ -1,0 +1,47 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i> @User.Identity?.Name
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                        <i class="bi bi-person"></i> โปรไฟล์
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Booking" asp-action="MyBookings">
+                        <i class="bi bi-calendar-check"></i> การจองของฉัน
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form class="form-inline" asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="dropdown-item">
+                            <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Account" asp-action="Register">
+                <i class="bi bi-person-plus"></i> สมัครสมาชิก
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Account" asp-action="Login">
+                <i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบ
+            </a>
+        </li>
+    }
+</ul>

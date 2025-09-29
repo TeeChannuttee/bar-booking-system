@@ -1,0 +1,462 @@
+﻿@model List<PromoCode>
+@{
+    ViewData["Title"] = "จัดการโปรโมชัน";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-ticket-perforated"></i> จัดการโปรโมชัน</h2>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPromoModal">
+            <i class="bi bi-plus-circle"></i> สร้างโปรโมชันใหม่
+        </button>
+    </div>
+
+    <!-- Display Messages -->
+   
+
+    <!-- Active Promos -->
+    <div class="row mb-4">
+        @foreach (var promo in Model.Where(p => p.IsActive && p.ValidTo >= DateTime.UtcNow))
+        {
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">@promo.Code</h5>
+                            @if (promo.DiscountPercent > 0)
+                            {
+                                <span class="badge bg-white text-primary">-@promo.DiscountPercent%</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-white text-primary">-฿@promo.DiscountAmount</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p>@promo.Description</p>
+                        <ul class="list-unstyled small">
+                            <li><i class="bi bi-calendar"></i> ใช้ได้ถึง: @promo.ValidTo.ToLocalTime().ToString("dd/MM/yyyy")</li>
+                            <li><i class="bi bi-tag"></i> ใช้แล้ว: @promo.CurrentUses / @promo.MaxUses</li>
+                            @if (promo.MinimumSpend > 0)
+                            {
+                                <li><i class="bi bi-cash"></i> ขั้นต่ำ: ฿@promo.MinimumSpend.ToString("N0")</li>
+                            }
+                        </ul>
+
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: @(((promo.MaxUses > 0) ? (double)promo.CurrentUses / promo.MaxUses * 100.0 : 0).ToString("F0"))%">
+                                @(((promo.MaxUses > 0) ? (double)promo.CurrentUses / promo.MaxUses * 100.0 : 0).ToString("F0"))%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editPromo(@promo.Id)">
+                                <i class="bi bi-pencil"></i> แก้ไข
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="togglePromoStatus(@promo.Id)">
+                                <i class="bi bi-power"></i> @(promo.IsActive ? "ปิด" : "เปิด")
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePromo(@promo.Id, '@promo.Code')">
+                                <i class="bi bi-trash"></i> ลบ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- All Promos Table -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h5 class="mb-0">โปรโมชันทั้งหมด</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>โค้ด</th>
+                            <th>รายละเอียด</th>
+                            <th>ส่วนลด</th>
+                            <th>ขั้นต่ำ</th>
+                            <th>ใช้ได้ถึง</th>
+                            <th>ใช้แล้ว</th>
+                            <th>สถานะ</th>
+                            <th>การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var promo in Model)
+                        {
+                            <tr>
+                                <td><strong>@promo.Code</strong></td>
+                                <td>@promo.Description</td>
+                                <td>
+                                    @if (promo.DiscountPercent > 0)
+                                    {
+                                        <span class="badge bg-info">@promo.DiscountPercent%</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">฿@promo.DiscountAmount</span>
+                                    }
+                                </td>
+                                <td>฿@promo.MinimumSpend.ToString("N0")</td>
+                                <td>@promo.ValidTo.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <span class="text-muted">@promo.CurrentUses / @promo.MaxUses</span>
+                                    @if (promo.MaxUses > 0)
+                                    {
+                                        <div class="progress mt-1" style="height: 4px;">
+                                            <div class="progress-bar bg-info" style="width: @(((double)promo.CurrentUses / promo.MaxUses * 100).ToString("F0"))%"></div>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var nowUtc = DateTime.UtcNow;
+                                    }
+                                    @if (promo.IsActive && promo.ValidTo >= nowUtc)
+                                    {
+                                        <span class="badge bg-success">ใช้งาน</span>
+                                    }
+                                    else if (promo.ValidTo < nowUtc)
+                                    {
+                                        <span class="badge bg-secondary">หมดอายุ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">ปิด</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editPromo(@promo.Id)" title="แก้ไข">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="togglePromoStatus(@promo.Id)" title="เปลี่ยนสถานะ">
+                                            <i class="bi bi-power"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deletePromo(@promo.Id, '@promo.Code')" title="ลบ">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Promo Modal -->
+<div class="modal fade" id="createPromoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">สร้างโปรโมชันใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreatePromoCode" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">รหัสโปรโมชัน <span class="text-danger">*</span></label>
+                            <input type="text" name="Code" class="form-control" required
+                                   style="text-transform: uppercase;" placeholder="HAPPY50" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">จำนวนครั้งที่ใช้ได้ <span class="text-danger">*</span></label>
+                            <input type="number" name="MaxUses" class="form-control" min="1" value="100" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">รายละเอียด <span class="text-danger">*</span></label>
+                        <input type="text" name="Description" class="form-control" required
+                               placeholder="ส่วนลดพิเศษ" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ส่วนลด %</label>
+                            <input type="number" name="DiscountPercent" class="form-control"
+                                   min="0" max="100" value="0" step="1" />
+                            <div class="form-text">กรอก 0 หากต้องการใช้จำนวนเงิน</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">หรือ ลดเงิน ฿</label>
+                            <input type="number" name="DiscountAmount" class="form-control"
+                                   min="0" value="0" step="50" />
+                            <div class="form-text">กรอก 0 หากต้องการใช้เปอร์เซ็นต์</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ยอดขั้นต่ำ (บาท)</label>
+                        <input type="number" name="MinimumSpend" class="form-control" min="0" value="0" step="100" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ใช้ได้ตั้งแต่ <span class="text-danger">*</span></label>
+                            <input type="date" name="ValidFrom" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ถึงวันที่ <span class="text-danger">*</span></label>
+                            <input type="date" name="ValidTo" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">สร้างโปรโมชัน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Promo Modal -->
+<div class="modal fade" id="editPromoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">แก้ไขโปรโมชัน</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editPromoForm" asp-action="UpdatePromoCode" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editPromoId" name="Id" />
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">รหัสโปรโมชัน <span class="text-danger">*</span></label>
+                            <input type="text" id="editCode" name="Code" class="form-control" required
+                                   style="text-transform: uppercase;" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">จำนวนครั้งที่ใช้ได้ <span class="text-danger">*</span></label>
+                            <input type="number" id="editMaxUses" name="MaxUses" class="form-control" min="1" required />
+                            <div class="form-text">ใช้แล้ว: <span id="editCurrentUses">0</span> ครั้ง</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">รายละเอียด <span class="text-danger">*</span></label>
+                        <input type="text" id="editDescription" name="Description" class="form-control" required />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ส่วนลด %</label>
+                            <input type="number" id="editDiscountPercent" name="DiscountPercent" class="form-control"
+                                   min="0" max="100" step="1" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">หรือ ลดเงิน ฿</label>
+                            <input type="number" id="editDiscountAmount" name="DiscountAmount" class="form-control"
+                                   min="0" step="50" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ยอดขั้นต่ำ (บาท)</label>
+                        <input type="number" id="editMinimumSpend" name="MinimumSpend" class="form-control" min="0" step="100" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ใช้ได้ตั้งแต่ <span class="text-danger">*</span></label>
+                            <input type="date" id="editValidFrom" name="ValidFrom" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ถึงวันที่ <span class="text-danger">*</span></label>
+                            <input type="date" id="editValidTo" name="ValidTo" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="editIsActive" name="IsActive" />
+                            <label class="form-check-label" for="editIsActive">
+                                เปิดใช้งาน
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Set default dates for create modal
+        $(document).ready(function() {
+            const today = new Date().toISOString().split('T')[0];
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            const nextMonthStr = nextMonth.toISOString().split('T')[0];
+
+            $('#createPromoModal input[name="ValidFrom"]').val(today);
+            $('#createPromoModal input[name="ValidTo"]').val(nextMonthStr);
+        });
+
+        // Edit Promo Function
+        async function editPromo(id) {
+            try {
+                const response = await fetch(`/Admin/EditPromoCode/${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+
+                    // Populate form fields
+                    $('#editPromoId').val(data.Id);
+                    $('#editCode').val(data.Code);
+                    $('#editDescription').val(data.Description);
+                    $('#editDiscountPercent').val(data.DiscountPercent);
+                    $('#editDiscountAmount').val(data.DiscountAmount);
+                    $('#editMinimumSpend').val(data.MinimumSpend);
+                    $('#editValidFrom').val(data.ValidFrom);
+                    $('#editValidTo').val(data.ValidTo);
+                    $('#editMaxUses').val(data.MaxUses);
+                    $('#editCurrentUses').text(data.CurrentUses);
+                    $('#editIsActive').prop('checked', data.IsActive);
+
+                    // Show modal
+                    $('#editPromoModal').modal('show');
+                } else {
+                    alert('ไม่สามารถโหลดข้อมูลโปรโมชันได้');
+                }
+            } catch (error) {
+                console.error('Error loading promo data:', error);
+                alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+            }
+        }
+
+        // Delete Promo Function
+        async function deletePromo(id, code) {
+            if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบโปรโมชัน "${code}"?`)) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+                const response = await fetch(`/Admin/DeletePromoCode/${id}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success message
+                    showAlert('success', result.message);
+                    // Reload page after short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting promo:', error);
+                showAlert('danger', 'เกิดข้อผิดพลาดในการลบโปรโมชัน');
+            }
+        }
+
+        // Toggle Promo Status Function
+        async function togglePromoStatus(id) {
+            try {
+                const formData = new FormData();
+                formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+                const response = await fetch(`/Admin/TogglePromoStatus/${id}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('success', result.message);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', result.message);
+                }
+            } catch (error) {
+                console.error('Error toggling promo status:', error);
+                showAlert('danger', 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ');
+            }
+        }
+
+        // Show Alert Function
+        function showAlert(type, message) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Remove existing alerts
+            $('.alert').remove();
+
+            // Add new alert at the top of container
+            $('.container-fluid').prepend(alertHtml);
+        }
+
+        // Form validation for create modal
+        $('#createPromoModal form').on('submit', function(e) {
+            const percent = parseFloat($('input[name="DiscountPercent"]').val()) || 0;
+            const amount = parseFloat($('input[name="DiscountAmount"]').val()) || 0;
+
+            if (percent === 0 && amount === 0) {
+                e.preventDefault();
+                alert('กรุณาระบุส่วนลดเป็นเปอร์เซ็นต์หรือเป็นจำนวนเงินอย่างใดอย่างหนึ่ง');
+                return false;
+            }
+
+            if (percent > 0 && amount > 0) {
+                e.preventDefault();
+                alert('ระบุส่วนลดได้เพียงแบบเดียว (เปอร์เซ็นต์ หรือ จำนวนเงิน)');
+                return false;
+            }
+        });
+
+        // Form validation for edit modal
+        $('#editPromoForm').on('submit', function(e) {
+            const percent = parseFloat($('#editDiscountPercent').val()) || 0;
+            const amount = parseFloat($('#editDiscountAmount').val()) || 0;
+
+            if (percent === 0 && amount === 0) {
+                e.preventDefault();
+                alert('กรุณาระบุส่วนลดเป็นเปอร์เซ็นต์หรือเป็นจำนวนเงินอย่างใดอย่างหนึ่ง');
+                return false;
+            }
+
+            if (percent > 0 && amount > 0) {
+                e.preventDefault();
+                alert('ระบุส่วนลดได้เพียงแบบเดียว (เปอร์เซ็นต์ หรือ จำนวนเงิน)');
+                return false;
+            }
+        });
+    </script>
+}

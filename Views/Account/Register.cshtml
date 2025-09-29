@@ -1,0 +1,121 @@
+﻿@model RegisterViewModel
+@{
+    ViewData["Title"] = "สมัครสมาชิก";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4">
+                        <i class="bi bi-person-plus-fill"></i> สมัครสมาชิก
+                    </h2>
+
+                    <form asp-action="Register" method="post">
+                        <div asp-validation-summary="All" class="alert alert-danger"
+                             style="display: @(ViewData.ModelState.ErrorCount > 0 ? "block" : "none")"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">
+                                <i class="bi bi-envelope"></i> อีเมล
+                            </label>
+                            <input asp-for="Email" class="form-control form-control-lg"
+                                   placeholder="email@example.com" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">
+                                <i class="bi bi-person"></i> ชื่อ-นามสกุล
+                            </label>
+                            <input asp-for="FullName" class="form-control form-control-lg" required />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PhoneNumber" class="form-label">
+                                <i class="bi bi-telephone"></i> เบอร์โทรศัพท์
+                            </label>
+                            <input asp-for="PhoneNumber" class="form-control form-control-lg"
+                                   placeholder="08X-XXX-XXXX" required />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="DateOfBirth" class="form-label">
+                                <i class="bi bi-calendar"></i> วันเกิด
+                            </label>
+                            <input asp-for="DateOfBirth" type="date" class="form-control form-control-lg" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LineUserId" class="form-label">
+                                <i class="fab fa-line"></i> LINE ID (สำหรับรับการแจ้งเตือน)
+                            </label>
+                            <input asp-for="LineUserId" class="form-control form-control-lg"
+                                   placeholder="Optional" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">
+                                <i class="bi bi-lock"></i> รหัสผ่าน
+                            </label>
+                            <input asp-for="Password" type="password" class="form-control form-control-lg" required />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                            <div class="form-text">ต้องมีอย่างน้อย 6 ตัวอักษร และมีตัวเลข</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ConfirmPassword" class="form-label">
+                                <i class="bi bi-lock-fill"></i> ยืนยันรหัสผ่าน
+                            </label>
+                            <input asp-for="ConfirmPassword" type="password"
+                                   class="form-control form-control-lg" required />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="agreeTerms" required>
+                            <label class="form-check-label" for="agreeTerms">
+                                ยอมรับ <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">
+                                    ข้อกำหนดและเงื่อนไข
+                                </a>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-person-plus"></i> สมัครสมาชิก
+                        </button>
+
+                        <div class="text-center">
+                            <p>มีบัญชีอยู่แล้ว? <a asp-action="Login">เข้าสู่ระบบ</a></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ข้อกำหนดและเงื่อนไข</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>1. ผู้ใช้ต้องมีอายุ 20 ปีขึ้นไป</p>
+                <p>2. ข้อมูลที่ให้ต้องเป็นความจริง</p>
+                <p>3. รักษาความลับของรหัสผ่าน</p>
+                <p>4. ใช้บริการอย่างรับผิดชอบ</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">รับทราบ</button>
+            </div>
+        </div>
+    </div>
+</div>

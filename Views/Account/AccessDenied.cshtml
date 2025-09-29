@@ -1,0 +1,31 @@
+﻿@{
+    ViewData["Title"] = "ไม่มีสิทธิ์เข้าถึง";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <i class="bi bi-shield-x text-danger" style="font-size: 5rem;"></i>
+                    <h2 class="mt-4 mb-3">ไม่มีสิทธิ์เข้าถึง</h2>
+                    <p class="text-muted">
+                        คุณไม่มีสิทธิ์ในการเข้าถึงหน้านี้<br>
+                        กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
+                    </p>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                            <i class="bi bi-house"></i> กลับหน้าหลัก
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                            <i class="bi bi-arrow-left"></i> ย้อนกลับ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

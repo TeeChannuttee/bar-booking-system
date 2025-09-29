@@ -21,7 +21,7 @@ if (!string.IsNullOrEmpty(port))
 bool autoMigrate = builder.Configuration.GetValue("AUTO_MIGRATE", false);
 bool jobsEnabled = builder.Configuration.GetValue("JOBS__ENABLED", false);
 
-// ====== DB (use Supabase PgBouncer: port 6543) ======
+// ====== DB (Supabase PgBouncer: port 6543) ======
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -59,9 +59,28 @@ builder.Services.ConfigureApplicationCookie(o =>
     o.ExpireTimeSpan = TimeSpan.FromDays(7);
     o.SlidingExpiration = true;
 
-    // ✅ ให้ส่งคุกกี้ใน cross-site redirect + บังคับ HTTPS
+    // ✅ ต้องเปิดให้ส่ง cookie ตอน redirect จาก Stripe
     o.Cookie.SameSite = SameSiteMode.None;
     o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+// ====== Session Cookie ======
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+
+    // ✅ ปรับ SameSite/HTTPS เช่นเดียวกัน
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+// ====== Antiforgery Cookie (ใช้ในฟอร์มที่มี [ValidateAntiForgeryToken]) ======
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 // ====== Services ======
@@ -75,7 +94,7 @@ builder.Services.AddScoped<IAdminReportService, AdminReportService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IAdminBookingService, AdminBookingService>();
 
-// Background jobs (ปิดได้ด้วย env)
+// Background jobs
 if (jobsEnabled)
 {
     builder.Services.AddHostedService<BookingReminderService>();
@@ -91,21 +110,11 @@ builder.Services.AddControllersWithViews()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
         p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
-
-// (ทางเลือก) ถ้าจะ config ที่ service-level ก็ได้ แต่เราไปกำหนดตอนใช้จริงเพียงครั้งเดียวด้านล่างดีกว่า
-// builder.Services.Configure<ForwardedHeadersOptions>(...);
 
 var app = builder.Build();
 
@@ -113,9 +122,8 @@ var app = builder.Build();
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost,
-    // เครือข่าย proxy ของ Railway
-    KnownNetworks = { new IPNetwork(IPAddress.Parse("100.64.0.0"), 10) }
-});
+    KnownNetworks = { new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("100.64.0.0"), 10) }
+
 
 // ====== Error/HSTS ======
 if (app.Environment.IsDevelopment())
@@ -161,7 +169,7 @@ app.MapGet("/dbping", async (IConfiguration cfg) =>
     return Results.Ok(new { db = "ok", val });
 });
 
-// ====== Migrate/Seed (ไม่บล็อกการฟังพอร์ต) ======
+// ====== Auto-Migrate ======
 if (autoMigrate)
 {
     _ = Task.Run(async () =>

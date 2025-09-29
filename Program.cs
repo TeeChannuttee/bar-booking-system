@@ -5,22 +5,28 @@ using BarBookingSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
+using Npgsql;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// ✅ บังคับให้ Kestrel ฟังพอร์ตที่ Railway กำหนด
 var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(port))
 {
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 }
 
-// === DATABASE CONFIGURATION (SUPABASE) ===
+// === DATABASE CONFIGURATION (SUPABASE POOLER IPv4) ===
+// ใช้พอร์ต 6543 และ Pooler Host จาก Supabase (เช่น aws-1-ap-southeast-1.pooler.supabase.com)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => {
+        npgsqlOptions =>
+        {
             npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
+                maxRetryDelay: TimeSpan.FromSeconds(10),
                 errorCodesToAdd: null
             );
         }
@@ -42,7 +48,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
     // User settings
     options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false; // Set true in production
+    options.SignIn.RequireConfirmedEmail = false; // ✅ ตั้ง true ใน production
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
@@ -61,20 +67,15 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ILineNotifyService, LineNotifyService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
-//builder.Services.AddScoped<IPaymentService, StripePaymentService>();
-
-// Background Service for Reminders
-builder.Services.AddHostedService<BookingReminderService>();
-builder.Services.AddScoped<IAccountService, AccountService>();
-
-// Service Registration
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAdminTableService, AdminTableService>();
 builder.Services.AddScoped<IAdminPromoService, AdminPromoService>();
 builder.Services.AddScoped<IAdminReportService, AdminReportService>();
-// Service Registration (เพิ่มอีก 2 ตัวที่ยังไม่มี)
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IAdminBookingService, AdminBookingService>();
+
+// Background Service
+builder.Services.AddHostedService<BookingReminderService>();
 
 // === MVC & API CONFIGURATION ===
 builder.Services.AddControllersWithViews()
@@ -83,7 +84,6 @@ builder.Services.AddControllersWithViews()
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
-// Add API Controllers
 builder.Services.AddEndpointsApiExplorer();
 
 // === SIGNALR FOR REAL-TIME UPDATES ===
@@ -101,24 +101,31 @@ builder.Services.AddSession(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
-        builder =>
+        policyBuilder =>
         {
-            builder.AllowAnyOrigin()
-                   .AllowAnyMethod()
-                   .AllowAnyHeader();
+            policyBuilder.AllowAnyOrigin()
+                         .AllowAnyMethod()
+                         .AllowAnyHeader();
         });
 });
 
+// ✅ ForwardedHeaders สำหรับ Railway Proxy (100.64.0.0/10)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
 
+    // เพิ่มเครือข่าย proxy ของ Railway
+    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("100.64.0.0"), 10));
+
+});
 
 var app = builder.Build();
 
-// ต้องมาก่อน HTTPS/CORS/Auth เพื่อให้ header จาก proxy ทำงานถูก
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
-
+// ✅ ต้องมาก่อน HTTPS/CORS/Auth
+app.UseForwardedHeaders();
 
 // === CONFIGURE PIPELINE ===
 if (app.Environment.IsDevelopment())
@@ -145,7 +152,20 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// === SIGNALR HUB ===
 app.MapHub<BookingHub>("/bookingHub");
+
+// ✅ HEALTH CHECK & DB PING
+app.MapGet("/healthz", () => Results.Ok("OK"));
+app.MapGet("/dbping", async (IConfiguration cfg) =>
+{
+    var cs = cfg.GetConnectionString("DefaultConnection");
+    await using var conn = new NpgsqlConnection(cs);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand("SELECT 1", conn);
+    var val = await cmd.ExecuteScalarAsync();
+    return Results.Ok(new { db = "ok", val });
+});
 
 // === INITIALIZE DATABASE & SEED DATA ===
 using (var scope = app.Services.CreateScope())
